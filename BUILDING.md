@@ -40,8 +40,18 @@ Done:
 - h-suffix aspiration in `XngloIME.kt`: typing h right after
   k/g/c/z/t/d/j/q/b/s swaps that letter for its aspirated capital
   (K G C Z T D J Q B S) instead of inserting a literal h
+- shared xi38 dictionary (`XngloDictionary.kt` + `assets/dictionaries/`):
+  pools word lists from every xNglo language variant present as a
+  `.txt` file, prefix-matches the word currently being typed, and shows
+  a tappable candidates strip above the keyboard. Seeded with 115 real
+  words already built for the xNglo chart (74 xv38, 41 xe38).
 
-Not yet built (see `readme.md` for the full spec):
-- the shared xi38 dictionary/auto-complete across all xNglo language
-  variants (xe38, xv38, xb38, xp38, xg38, xo38, xj38, xk38, xt38,
-  xmr38, xm38, xs38)
+Not yet built:
+- more per-language dictionaries (xb38, xp38, xg38, xo38, xj38, xk38,
+  xt38, xmr38, xm38, xs38) -- just drop `assets/dictionaries/<code>.txt`,
+  one word per line, no code changes needed
+- frequency-ranked suggestions (currently sorted by length then
+  alphabetically, per language file)
+- true composing-text span (`ic.setComposingText`) instead of the
+  manual `currentWord` tracking -- would add underline styling on the
+  in-progress word

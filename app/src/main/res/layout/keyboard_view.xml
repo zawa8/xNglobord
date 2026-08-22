@@ -1,11 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.inputmethodservice.KeyboardView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/xnglo_keyboard_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_alignParentBottom="true"
-    android:background="#0B0F19"
-    android:keyBackground="@drawable/key_background"
-    android:keyTextColor="#E2E8F0"
-    android:keyTextSize="18sp" />
+    android:orientation="vertical"
+    android:background="#0B0F19">
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:scrollbars="none"
+        android:background="#111827">
+
+        <LinearLayout
+            android:id="@+id/candidates_row"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+    </HorizontalScrollView>
+
+    <android.inputmethodservice.KeyboardView
+        android:id="@+id/xnglo_keyboard_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#0B0F19"
+        android:keyBackground="@drawable/key_background"
+        android:keyTextColor="#E2E8F0"
+        android:keyTextSize="18sp" />
+
+</LinearLayout>
