@@ -30,18 +30,18 @@ from any text field's keyboard-switcher.
 
 ## What's here vs. what's next
 
-Done (this scaffold):
+Done:
 - Gradle project structure, manifest, IME service registration
-- `XngloIME.kt`: minimal `InputMethodService` that inflates a keyboard,
-  sends keystrokes to the focused field, handles backspace/space/enter
-- `keys_placeholder.xml`: a 2-row stand-in layout (x a i u e o + space/
-  backspace/enter) just to prove the pipeline end-to-end
+- `XngloIME.kt`: `InputMethodService` that inflates the keyboard, sends
+  keystrokes to the focused field, handles backspace/space/enter
+- `keys_xi38.xml`: the real 38-sound layout, standard QWERTY positions
+  (the 26 lowercase base graphemes are literally a-z), with long-press
+  popups on every key for its capital form
+- h-suffix aspiration in `XngloIME.kt`: typing h right after
+  k/g/c/z/t/d/j/q/b/s swaps that letter for its aspirated capital
+  (K G C Z T D J Q B S) instead of inserting a literal h
 
 Not yet built (see `readme.md` for the full spec):
-- the real 38-sound key layout
-- h-suffix aspiration (k+h -> K, g+h -> G, c+h -> C, z+h -> Z, t+h -> T,
-  d+h -> D, j+h -> J, q+h -> Q, b+h -> B, s+h -> S)
-- long-press on a-z for the caps variant
 - the shared xi38 dictionary/auto-complete across all xNglo language
   variants (xe38, xv38, xb38, xp38, xg38, xo38, xj38, xk38, xt38,
   xmr38, xm38, xs38)
