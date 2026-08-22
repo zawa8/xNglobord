@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Declares the IME's language subtype(s). isAsciiCapable is set true since
+  xi38 is a Latin-alphabet phonetic script (x a i u e o ... per the spec),
+  not a native Unicode script: it types as plain ASCII/Latin text.
+
+  Add one subtype per xNglo language variant here later (xe38, xv38,
+  xb38, ...) once the common dictionary exists; for now there's a single
+  generic xi38 subtype.
+-->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android">
+    <subtype
+        android:label="@string/subtype_xi38"
+        android:imeSubtypeLocale="en_US"
+        android:imeSubtypeMode="keyboard"
+        android:isAsciiCapable="true" />
+</input-method>
