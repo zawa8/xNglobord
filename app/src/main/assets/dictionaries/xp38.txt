@@ -42,7 +42,6 @@ Bwisywani krna
 Byank
 CR
 CRi
-Caja
 Caji
 Cajr
 Cajrwrjji
@@ -51,7 +50,6 @@ Caya
 Ceq
 Cipana
 Cj
-Cjri
 Cl
 CoRna
 Cota
@@ -84,7 +82,6 @@ Gumana
 Gumna
 Gutna
 Gutno jk pvne zane wale zuje
-Jali
 Jietr
 Jim
 Jka qena
@@ -92,7 +89,6 @@ Jka vuxa
 JoRa
 Jopna
 Jxila
-Jyela
 KRa krna
 KRa vxi
 Kaja
@@ -107,7 +103,6 @@ KilaRi
 Kiloune
 Kince
 Kincna
-Kira
 Kisk zana
 Kjra
 Kjrnak
@@ -122,17 +117,14 @@ Krb
 Krc
 Krc krje vxi
 Krc wvn krna
-KrgoS
 Kriqari
 Kriqna
 Kriq froKj
-Ktml
 Ktta
 Kub
 Kulasa
 Kuq
 Kurqura
-Kzuur
 Qaju
 Qara
 Qarmik
@@ -147,7 +139,6 @@ Qkelna
 Qmki
 Qmki qena
 Qni
-QnuS
 Qnwan
 Qnywaq
 Qnywaq qena
@@ -228,10 +219,8 @@ Svri
 SxiSik
 Sxili
 SynkS
-TTera
 Tanna
 TeT
-Tela
 Tik
 Tik vxi
 Tnda
@@ -290,7 +279,6 @@ beGr
 becna
 bekrar
 belt
-belxn
 benc
 besbal
 beta
@@ -310,7 +298,6 @@ bina
 binqu
 bis
 bisjr
-biskut
 biwi
 biyr
 biz
@@ -318,7 +305,6 @@ bizli
 bjana
 bk
 bkaya
-bkri
 bled
 blki
 blwan
@@ -334,7 +320,6 @@ bnq
 bnqi
 bnqrgav
 bnquk
-bnqxr
 bnq krna
 boZ
 bojl
@@ -390,7 +375,6 @@ bze
 bzt
 cDna
 caBi
-caar
 caca
 caklet
 caku
@@ -417,8 +401,6 @@ cevra
 ciK
 ciKna
 ciRiya
-ciil
-cija
 cijr
 cijrij
 cijrkar
@@ -444,7 +426,6 @@ cmRa
 cmjkar
 cmk
 cmkqar
-cmmxc
 cot
 couJi
 couKta
@@ -481,8 +462,6 @@ dipti
 dizain
 dizainr
 dizitl
-dmru
-doktr
 dori
 dr
 drawna
@@ -531,13 +510,11 @@ futbal
 fxiSn
 fxilaw
 fxila vuxa
-gQa
 gRbR
 gTbnQn
 gTij krna
 gTn
 gaRi
-gae
 gal
 gali qena
 gana
@@ -566,7 +543,6 @@ glj
 glji
 gmBir
 gmBirja se
-gmla
 gn
 gnQ
 gnij
@@ -611,9 +587,6 @@ gxis
 gyan
 icCa
 icCuk
-idli
-iiK
-iit
 ijalwi
 ijivas
 ijivaskar
@@ -624,7 +597,6 @@ ilektronik
 imanqar
 imarj
 imel
-imli
 in
 inQn
 injivan
@@ -633,7 +605,6 @@ instal
 intrnet
 inwestr
 inziniyr
-inzxn
 irak
 iraqa
 iraqa rKna
@@ -659,17 +630,13 @@ jakj
 jakjwr
 jal
 jala
-jali
 japman
 jar
 jaza
-jbla
 jel
 jez
 jezi se
 jiKa
-jiin
-jiir
 jin
 jis
 jisra
@@ -688,11 +655,9 @@ jn
 jnaw
 jnjr
 jnqur
-jori
 joulna
 jour–jrika
 jrasqi
-jrbuz
 jrika
 jrimas
 jrksNgj
@@ -760,7 +725,6 @@ ka pja lgane
 ka ullNGn
 ka wiroQ
 ka xannq le
-kbujr
 kbza
 kcca
 keS
@@ -780,7 +744,6 @@ ke xjirikj
 ke xlawa
 ke zrie
 ke zxisa lgna
-kiNg
 kiSor
 kijab
 kimj
@@ -817,7 +780,6 @@ kmbl
 kmi
 kmpni
 kmra
-kmxl
 kmzor
 km krna
 km se km
@@ -903,7 +865,6 @@ kxise? ‘ya‘ kya?
 kya
 kyi
 kyo
-kyuin
 lRai
 lRai krna
 lRka
@@ -1182,7 +1143,6 @@ nyayocij Tvrana
 nye nye
 nzr
 nzrxnqaz krna
-oKli
 olimpik
 onT
 oupcarik
@@ -1193,7 +1153,6 @@ ouzar
 ov
 owrluk
 pJri
-pNka
 pNkji
 pRna
 pRosi
@@ -1550,13 +1509,11 @@ quri
 qurlB
 qursJ
 qusra
-qvi
 qwa
 qwai
 qwar
 qwara
 qwip
-rJ
 rKna
 rNg
 rNgrut
@@ -1899,7 +1856,6 @@ sur
 surNg
 surSa
 surSij
-surxz
 suwiQa
 suwiQaznk vona
 svara lena
@@ -1958,7 +1914,6 @@ tvl lo
 txiNk
 tyub
 uBrna
-uNgli
 uNgliya
 uQar
 uRan
@@ -1984,7 +1939,6 @@ ulZa vuxa
 ulZn
 ullNGn
 ulleK
-ullu
 ummiqwar
 umr Br
 unca swr
@@ -2022,8 +1976,6 @@ use
 usi prkar
 uske
 uski
-uun
-uut
 vJeli
 vJiyar
 vJiyarbnq
@@ -2256,7 +2208,6 @@ xaBasi rup se
 xaGaj
 xaKirkar
 xaNK
-xaNgn
 xaNkRe
 xaQa
 xaQar
@@ -2295,14 +2246,12 @@ xakrsk
 xalocna
 xalocna krna
 xalu
-xam
 xamjour pr
 xamnjrij krna
 xam jour pr
 xam svmji
 xanQi
 xanSik rup me
-xanj
 xanjrik
 xannq
 xansu
@@ -2329,7 +2278,6 @@ xar–par
 xasJa
 xasan
 xas–pas
-xata
 xavar
 xavj
 xawSyk rup se
@@ -2366,12 +2314,9 @@ xlg vona
 xlpsNKyk
 xmerikn
 xml me lana
-xmruuq
 xnQa
 xnQera
 xnS
-xnanas
-xnar
 xnaz
 xnda
 xniwary rup se
@@ -2385,8 +2330,6 @@ xnj me
 xnoKa
 xnqazn
 xnqr
-xnqxr
-xnt
 xnuBuji
 xnuBw
 xnuBwi wykji
@@ -2459,7 +2402,6 @@ xwlokn
 xwsJa
 xwsr
 xwyw
-xxpxl
 xzib
 xznbi
 yJarJ baj
@@ -2565,7 +2507,6 @@ zuRwa
 zuban
 zudiye
 zuja
-zvaz
 zvaz ki Cj
 zwab
 zwab qena
