@@ -34,6 +34,9 @@ import android.widget.TextView
  *      every letter the candidates strip above the keyboard is
  *      refreshed, and tapping a candidate replaces the in-progress
  *      word in the text field.
+ *   4. Local font picker: [FontManager] + [SettingsActivity] mirror
+ *      translet-xnglo's LocalFontPicker.tsx (same font list/order).
+ *      The chosen font is applied to the candidates strip text.
  */
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
@@ -48,6 +51,11 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     // underline) -- a reasonable first pass; upgrading to
     // ic.setComposingText() would be the natural next step.
     private val currentWord = StringBuilder()
+
+    // Re-read each time the keyboard is shown (onStartInputView), so a
+    // change made in SettingsActivity takes effect the next time the
+    // user switches into a text field. null = use the default Typeface.
+    private var selectedTypeface: android.graphics.Typeface? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -68,6 +76,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         super.onStartInputView(info, restarting)
         keyboardView.keyboard = keyboard
         currentWord.setLength(0)
+        selectedTypeface = FontManager.getSelectedTypeface(this)
         renderCandidates()
     }
 
@@ -141,6 +150,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 text = suggestion
                 setTextColor(0xFFE2E8F0.toInt())
                 textSize = 15f
+                typeface = selectedTypeface
                 setPadding(28, 8, 28, 8)
                 setBackgroundResource(R.drawable.candidate_chip_background)
                 val params = LinearLayout.LayoutParams(
