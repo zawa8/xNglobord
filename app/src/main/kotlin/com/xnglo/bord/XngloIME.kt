@@ -36,11 +36,14 @@ import android.widget.TextView
  *      word in the text field.
  *   4. Local font picker: [FontManager] + [SettingsActivity] mirror
  *      translet-xnglo's LocalFontPicker.tsx (same font list/order).
- *      The chosen font is applied to the candidates strip text.
+ *      The chosen font is applied to both the key labels
+ *      ([XngloKeyboardView.setKeyTypeface]) and the candidates strip
+ *      text -- selecting e.g. xNglovinqi means the keyboard renders
+ *      in that font instead of the Android system font.
  */
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
-    private lateinit var keyboardView: KeyboardView
+    private lateinit var keyboardView: XngloKeyboardView
     private lateinit var keyboard: Keyboard
     private lateinit var candidatesRow: LinearLayout
 
@@ -77,6 +80,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         keyboardView.keyboard = keyboard
         currentWord.setLength(0)
         selectedTypeface = FontManager.getSelectedTypeface(this)
+        keyboardView.setKeyTypeface(selectedTypeface)
         renderCandidates()
     }
 

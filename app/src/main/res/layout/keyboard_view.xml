@@ -23,7 +23,7 @@
 
     </HorizontalScrollView>
 
-    <android.inputmethodservice.KeyboardView
+    <com.xnglo.bord.XngloKeyboardView
         android:id="@+id/xnglo_keyboard_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

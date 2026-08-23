@@ -53,8 +53,11 @@ Done:
   LocalFontPicker.tsx, backed by SharedPreferences instead of
   localStorage. Reachable via the gear icon next to xNglobord in
   Settings > Languages & input > On-screen keyboard. 15 matching .ttf
-  files bundled in `assets/fonts/` (1.3MB total). Currently applies to
-  the candidates strip text only.
+  files bundled in `assets/fonts/` (1.3MB total). Applies to both the
+  keyboard's key labels (`XngloKeyboardView`, a KeyboardView subclass
+  that exposes a typeface setter via reflection) and the candidates
+  strip text -- selecting e.g. xNglovinqi means the keyboard actually
+  renders in that font, not the Android system font.
 
 Not yet built:
 - more per-language dictionaries (xb38, xg38, xo38, xj38, xk38, xt38,
@@ -65,6 +68,3 @@ Not yet built:
 - true composing-text span (`ic.setComposingText`) instead of the
   manual `currentWord` tracking -- would add underline styling on the
   in-progress word
-- font picker currently only affects the candidates strip; extending
-  it to the key labels themselves would need a custom KeyboardView
-  subclass (the stock one doesn't expose a Typeface setter)
