@@ -1,11 +1,27 @@
 # Building xNglobord
 
-This is a standard Gradle Android project. No sandboxed CI here has the
-Android SDK, so this scaffold has been checked for XML well-formedness
-and Kotlin brace balance, but **not yet compiled with a real Android
-build** -- do that first thing after pulling.
+**You don't need Android Studio or a local Android SDK to get an .apk.**
+Every push to `main` triggers a GitHub Actions workflow
+(`.github/workflows/build-apk.yml`) that builds a debug APK on GitHub's
+own servers and publishes it as a GitHub Release.
 
-## Fastest way to build
+## Getting the APK (no local build needed)
+
+1. Go to the repo's **Releases** page (right sidebar on GitHub, or
+   `github.com/zawa8/xNglobord/releases`) on your phone.
+2. Open the latest **"Build N"** release.
+3. Tap the `.apk` file under Assets to download it directly.
+4. Open the downloaded file to install (Android will prompt to allow
+   installs from this source the first time).
+
+You can also trigger a build manually without pushing anything: go to
+the **Actions** tab -> **Build APK** workflow -> **Run workflow**.
+
+This is a **debug build** (works fine for testing, not signed for Play
+Store). If a build fails, check the Actions tab -- open the failed run
+and share the log output and I can fix it.
+
+## Building locally instead (optional)
 
 Open the repo root in **Android Studio** (Koala/2024.1+). It will:
 - detect the missing Gradle wrapper jar/scripts and offer to regenerate
@@ -14,7 +30,7 @@ Open the repo root in **Android Studio** (Koala/2024.1+). It will:
 - sync, download the Gradle 8.7 + AGP 8.5.2 + Kotlin 1.9.24 toolchain
 - let you Run on a device/emulator, which installs the app
 
-## Command line
+Or from the command line:
 
 ```
 gradle wrapper          # one-time, generates gradlew + gradle-wrapper.jar
