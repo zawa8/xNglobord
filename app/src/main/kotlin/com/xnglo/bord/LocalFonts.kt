@@ -13,20 +13,17 @@ data class LocalFontOption(val id: String, val displayName: String, val assetFil
 object LocalFonts {
     // please do not change order (matches LocalFontPicker.tsx / xnglofont's LocalFonts.kt, minus binaryfont)
     val ALL: List<LocalFontOption> = listOf(
-        LocalFontOption("eng52font", "e52", "eng52font.ttf"),
-        LocalFontOption("xng52font", "xNgloiNgliS", "xng52font.ttf"),
-        LocalFontOption("xv38fontid", "xNglovinqi", "xv38fontid.ttf"),
-        LocalFontOption("xb38fontid", "xNglobNgali", "xb38fontid.ttf"),
-        LocalFontOption("xj38fontid", "xNglojelugu", "xj38fontid.ttf"),
-        LocalFontOption("xk38fontid", "xNgloknRa", "xk38fontid.ttf"),
-        LocalFontOption("xp38fontid", "xNglopnzabi", "xp38fontid.ttf"),
-        LocalFontOption("xm38fontid", "xNglomlyalxm", "xm38fontid.ttf"),
-        LocalFontOption("xo38fontid", "xNglooriya", "xo38fontid.ttf"),
-        LocalFontOption("xg38fontid", "xNgloguzraji", "xg38fontid.ttf"),
-        LocalFontOption("xt38fontid", "xNglotmil", "xt38fontid.ttf"),
-        LocalFontOption("xs38fontid", "xNglosinvla", "xs38fontid.ttf"),
-        LocalFontOption("korian52font", "korian52", "korian52font.ttf"),
-        LocalFontOption("russian52font", "russian52", "russian52font.ttf"),
+        LocalFontOption("eNgliSxe38", "xNgloiNgliS", "eNgliSxe38.ttf"),
+        LocalFontOption("hindixv38", "xNglovinqi", "hindixv38.ttf"),
+        LocalFontOption("bengalixb38", "xNglobNgali", "bengalixb38.ttf"),
+        LocalFontOption("jeluguxj38", "xNglojelugu", "jeluguxj38.ttf"),
+        LocalFontOption("knRaxk38", "xNgloknRa", "knRaxk38.ttf"),
+        LocalFontOption("pnzabixp38", "xNglopnzabi", "pnzabixp38.ttf"),
+        LocalFontOption("mlyalxmxm38", "xNglomlyalxm", "mlyalxmxm38.ttf"),
+        LocalFontOption("oriyaxo38", "xNglooriya", "oriyaxo38.ttf"),
+        LocalFontOption("guzrajixg38", "xNgloguzraji", "guzrajixg38.ttf"),
+        LocalFontOption("tmilxt38", "xNglotmil", "tmilxt38.ttf"),
+        LocalFontOption("sinhlaxs38", "xNglosinvla", "sinhlaxs38.ttf"),
     )
 
     const val SYSTEM_FONT_ID = "system"
