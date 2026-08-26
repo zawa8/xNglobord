@@ -3,6 +3,7 @@ package com.xnglo.bord
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -46,7 +47,7 @@ object FontPickerPopup {
 
         val scroll = ScrollView(context).apply {
             addView(list)
-            setBackgroundColor(Color.TRANSPARENT)
+            setBackgroundColor(0xFF111827.toInt())
         }
 
         val popup = PopupWindow(
@@ -55,6 +56,12 @@ object FontPickerPopup {
             (420 * context.resources.displayMetrics.density).toInt(),
             true
         )
+        // Without this, PopupWindow falls back to the platform's
+        // default (opaque white/light) window background, which shows
+        // through as a blank rectangle around/behind our own dark
+        // content view. Making the popup's own background transparent
+        // lets `scroll`'s dark background be the only thing visible.
+        popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         popup.isOutsideTouchable = true
         popup.elevation = 16f
 
