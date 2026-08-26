@@ -44,9 +44,9 @@ import android.widget.TextView
  *      always types normally either way.
  *
  * Auto-complete uses the shared xi38 dictionary ([XngloDictionary],
- * pooling assets/dictionaries/*.txt across all xNglo language
- * variants) instead of an English word list -- the current word is
- * tracked in [currentWord] and the candidates strip above the
+ * pooling every .txt file under assets/dictionaries/ across all xNglo
+ * language variants) instead of an English word list -- the current
+ * word is tracked in [currentWord] and the candidates strip above the
  * keyboard refreshes on every letter.
  */
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
