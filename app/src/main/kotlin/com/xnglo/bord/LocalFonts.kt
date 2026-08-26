@@ -2,10 +2,8 @@ package com.xnglo.bord
 
 /**
  * Same font list, same order, as xnglofont's LocalFonts.kt and
- * translet-xnglo's components/hsciifp/LocalFontPicker.tsx, minus
- * binaryfont (excluded per instruction -- source is
- * zawa8/font/ttf/hscii/englosoftw8/englosoftw8utf/, all 14 files
- * except binarywenglosoftw8utf.ttf). Keep all three in sync.
+ * translet-xnglo's components/hsciifp/LocalFontPicker.tsx -- the
+ * 11-entry englosoftw8asc set per xnglofont.md, default xNglohindi.
  * `assetFileName` is the matching file in assets/fonts/.
  */
 data class LocalFontOption(val id: String, val displayName: String, val assetFileName: String)
@@ -26,9 +24,7 @@ object LocalFonts {
         LocalFontOption("sinhlaxs38", "xNglosinvla", "sinhlaxs38.ttf"),
     )
 
-    const val SYSTEM_FONT_ID = "system"
-    const val PREFS_NAME = "xnglobord_prefs"
-    const val PREF_KEY_FONT = "user-local-font"
+    const val DEFAULT_FONT_ID = "hindixv38" // xNglohindi
 
     fun byId(id: String): LocalFontOption? = ALL.find { it.id == id }
 }

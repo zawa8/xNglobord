@@ -1,34 +1,38 @@
 package com.xnglo.bord
 
 import android.content.Context
-import android.graphics.Typeface
 import android.content.SharedPreferences
+import android.graphics.Typeface
 
 /**
  * Loads and caches Typefaces from assets/fonts/, and reads/writes the
- * user's selected font preference (mirrors translet-xnglo's
- * localStorage-based LocalFontPicker, using SharedPreferences instead).
+ * user's selected font preference. Default is hindixv38 (xNglohindi)
+ * per spec -- there's no "system font" fallback option, the picker
+ * always has one of the 11 xNglo fonts selected.
  */
 object FontManager {
+    private const val PREFS_NAME = "xnglobord_prefs"
+    private const val PREF_KEY_FONT = "user-local-font"
 
     private val cache: MutableMap<String, Typeface?> = mutableMapOf()
 
     fun prefs(context: Context): SharedPreferences =
-        context.getSharedPreferences(LocalFonts.PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun getSelectedFontId(context: Context): String =
-        prefs(context).getString(LocalFonts.PREF_KEY_FONT, LocalFonts.SYSTEM_FONT_ID)
-            ?: LocalFonts.SYSTEM_FONT_ID
+        prefs(context).getString(PREF_KEY_FONT, LocalFonts.DEFAULT_FONT_ID)
+            ?: LocalFonts.DEFAULT_FONT_ID
 
     fun setSelectedFontId(context: Context, fontId: String) {
-        prefs(context).edit().putString(LocalFonts.PREF_KEY_FONT, fontId).apply()
+        prefs(context).edit().putString(PREF_KEY_FONT, fontId).apply()
     }
 
-    /** Returns the user's chosen Typeface, or null (meaning "use the default") if system font is selected or the file is missing/unreadable. */
+    fun getSelectedOption(context: Context): LocalFontOption =
+        LocalFonts.byId(getSelectedFontId(context)) ?: LocalFonts.ALL.first { it.id == LocalFonts.DEFAULT_FONT_ID }
+
+    /** Returns the user's chosen Typeface, or null if the font asset is missing/unreadable (falls back to the system default rendering). */
     fun getSelectedTypeface(context: Context): Typeface? {
-        val fontId = getSelectedFontId(context)
-        if (fontId == LocalFonts.SYSTEM_FONT_ID) return null
-        val option = LocalFonts.byId(fontId) ?: return null
+        val option = getSelectedOption(context)
         return loadTypeface(context, option.assetFileName)
     }
 

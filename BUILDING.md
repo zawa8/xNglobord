@@ -65,15 +65,18 @@ Done:
   currently byte-for-byte identical, so xp38 is really Hindi data under
   the Punjabi label until that's fixed upstream)
 - local font picker (`LocalFonts.kt` + `FontManager.kt` +
-  `SettingsActivity.kt`): same font list/order as translet-xnglo's
-  LocalFontPicker.tsx, backed by SharedPreferences instead of
-  localStorage. Reachable via the gear icon next to xNglobord in
-  Settings > Languages & input > On-screen keyboard. 15 matching .ttf
-  files bundled in `assets/fonts/` (1.3MB total). Applies to both the
-  keyboard's key labels (`XngloKeyboardView`, a KeyboardView subclass
-  that exposes a typeface setter via reflection) and the candidates
-  strip text -- selecting e.g. xNglovinqi means the keyboard actually
-  renders in that font, not the Android system font.
+  `FontPickerPopup.kt` + `SettingsActivity.kt`): 11 xNglo hscii fonts
+  (source: zawa8/font's englosoftw8asc files, per xnglofont.md),
+  default hindixv38 (xNglohindi). Two ways to change it: **long-press
+  the spacebar** for an in-keyboard popup list, or the gear icon in
+  Settings > Languages & input > On-screen keyboard. Backed by
+  SharedPreferences. Applies to both the keyboard's key labels
+  (`XngloKeyboardView`, a KeyboardView subclass that exposes a
+  typeface setter via reflection) and the candidates strip text.
+- h-suffix aspiration mode, selectable in Settings
+  (`AspirationPrefs.kt`): ASPIRATED (default, k+h -> K etc.) or
+  LITERAL (k+h types "kh"). Covers k g c z t d j q b s -> K G C Z T D
+  J Q B S.
 
 Not yet built:
 - more per-language dictionaries (xb38, xg38, xo38, xj38, xk38, xt38,
@@ -84,3 +87,6 @@ Not yet built:
 - true composing-text span (`ic.setComposingText`) instead of the
   manual `currentWord` tracking -- would add underline styling on the
   in-progress word
+- general Gboard-parity polish (auto-capitalization at sentence start,
+  gesture typing, etc.) -- the spec says "rest all will be same as
+  Gboard" but only the 3 features above have concrete asks so far

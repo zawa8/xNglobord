@@ -3,6 +3,8 @@ package com.xnglo.bord
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -12,40 +14,47 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * IME service for the xNglobord xi38 keyboard.
+ * IME service for the xNglobord xi38 keyboard (same idea as Gboard,
+ * plus three xNglo-specific features -- see xnglofont.md for the
+ * original spec).
  *
  * Layout: [R.xml.keys_xi38], standard QWERTY key positions -- the 26
  * lowercase xi38 base graphemes are literally the ordinary Latin a-z
  * letters, so no relabeling was needed.
  *
- * Spec behaviors implemented here (not in the XML):
- *   1. h-suffix aspiration: typing h immediately after one of
- *      k/g/c/z/t/d/j/q/b/s deletes that letter and inserts its
- *      aspirated capital form (k->K, g->G, c->C, z->Z, t->T, d->D,
- *      j->J, q->Q, b->B, s->S) instead of inserting a literal "h".
- *      Standalone h (not preceded by one of those 10) types normally.
- *   2. Long-press caps: handled by KeyboardView natively via each
- *      key's android:popupCharacters in keys_xi38.xml -- no code
- *      needed here, popup selections arrive through the same onKey().
- *   3. Shared xi38 dictionary auto-complete: [XngloDictionary] pools
- *      word lists from every xNglo language variant present in
- *      assets/dictionaries/ (xe38, xv38, ... more as they're seeded).
- *      The current word being typed is tracked in [currentWord]; on
- *      every letter the candidates strip above the keyboard is
- *      refreshed, and tapping a candidate replaces the in-progress
- *      word in the text field.
- *   4. Local font picker: [FontManager] + [SettingsActivity] mirror
- *      translet-xnglo's LocalFontPicker.tsx (same font list/order).
- *      The chosen font is applied to both the key labels
- *      ([XngloKeyboardView.setKeyTypeface]) and the candidates strip
- *      text -- selecting e.g. xNglovinqi means the keyboard renders
- *      in that font instead of the Android system font.
+ * The three extra features:
+ *   1. In-keyboard font picker: long-press the spacebar to open
+ *      [FontPickerPopup], listing all 11 xNglo hscii fonts
+ *      ([LocalFonts]). Selecting one re-themes the keyboard (key
+ *      labels via [XngloKeyboardView.setKeyTypeface] + candidates
+ *      strip text) immediately, and is remembered via [FontManager]
+ *      for next time. Default: hindixv38 (xNglohindi). Also reachable
+ *      from [SettingsActivity] via the gear icon.
+ *   2. Long-press caps on every a-z key: handled by KeyboardView
+ *      natively via android:popupCharacters in keys_xi38.xml -- no
+ *      code needed, the capital is the (only) popup option, so
+ *      long-press 'a' types 'A' and so on.
+ *   3. h-suffix aspiration, mode selectable in Settings
+ *      ([AspirationPrefs]): typing h immediately after one of
+ *      k/g/c/z/t/d/j/q/b/s either (a) ASPIRATED mode (default):
+ *      deletes that letter and inserts its capital form (k->K, g->G,
+ *      c->C, z->Z, t->T, d->D, j->J, q->Q, b->B, s->S) instead of a
+ *      literal h, or (b) LITERAL mode: just types "h" normally, so
+ *      k+h types "kh". Standalone h (not preceded by one of those 10)
+ *      always types normally either way.
+ *
+ * Auto-complete uses the shared xi38 dictionary ([XngloDictionary],
+ * pooling assets/dictionaries/*.txt across all xNglo language
+ * variants) instead of an English word list -- the current word is
+ * tracked in [currentWord] and the candidates strip above the
+ * keyboard refreshes on every letter.
  */
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     private lateinit var keyboardView: XngloKeyboardView
     private lateinit var keyboard: Keyboard
     private lateinit var candidatesRow: LinearLayout
+    private lateinit var rootView: View
 
     // The word currently being typed, since the last word boundary
     // (space/punctuation/enter/backspace-to-empty). Used to query
@@ -56,9 +65,21 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     private val currentWord = StringBuilder()
 
     // Re-read each time the keyboard is shown (onStartInputView), so a
-    // change made in SettingsActivity takes effect the next time the
-    // user switches into a text field. null = use the default Typeface.
+    // change made in SettingsActivity (or the in-keyboard font picker)
+    // takes effect immediately / on next focus.
     private var selectedTypeface: android.graphics.Typeface? = null
+
+    // Space-key long-press detection for the font picker.
+    private val spaceLongPressHandler = Handler(Looper.getMainLooper())
+    private var spaceLongPressTriggered = false
+    private val spaceLongPressRunnable = Runnable {
+        spaceLongPressTriggered = true
+        FontPickerPopup.show(this, rootView) { _ ->
+            selectedTypeface = FontManager.getSelectedTypeface(this)
+            keyboardView.setKeyTypeface(selectedTypeface)
+            renderCandidates()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -72,6 +93,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         candidatesRow = root.findViewById(R.id.candidates_row)
         keyboardView.keyboard = keyboard
         keyboardView.setOnKeyboardActionListener(this)
+        rootView = root
         return root
     }
 
@@ -97,7 +119,18 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 currentWord.setLength(0)
                 renderCandidates()
             }
-            WORD_BOUNDARY_SPACE, WORD_BOUNDARY_COMMA, WORD_BOUNDARY_PERIOD -> {
+            WORD_BOUNDARY_SPACE -> {
+                if (spaceLongPressTriggered) {
+                    // The long-press already opened the font picker --
+                    // don't also insert a space for this same press.
+                    spaceLongPressTriggered = false
+                } else {
+                    ic.commitText(" ", 1)
+                    currentWord.setLength(0)
+                    renderCandidates()
+                }
+            }
+            WORD_BOUNDARY_COMMA, WORD_BOUNDARY_PERIOD -> {
                 ic.commitText(primaryCode.toChar().toString(), 1)
                 currentWord.setLength(0)
                 renderCandidates()
@@ -113,6 +146,19 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
+    override fun onPress(primaryCode: Int) {
+        if (primaryCode == WORD_BOUNDARY_SPACE) {
+            spaceLongPressTriggered = false
+            spaceLongPressHandler.postDelayed(spaceLongPressRunnable, SPACE_LONG_PRESS_MS)
+        }
+    }
+
+    override fun onRelease(primaryCode: Int) {
+        if (primaryCode == WORD_BOUNDARY_SPACE) {
+            spaceLongPressHandler.removeCallbacks(spaceLongPressRunnable)
+        }
+    }
+
     /** Commits a plain character and returns it, or null for non-letter codes we don't track as part of a word. */
     private fun commitOrdinaryChar(ic: InputConnection, primaryCode: Int): Char? {
         val ch = primaryCode.toChar()
@@ -121,15 +167,20 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     /**
-     * h-suffix aspiration. If the character right before the cursor is
-     * one of the 10 aspirable consonants, swap it for its aspirated
-     * capital form instead of inserting "h". Otherwise insert "h" as
-     * normal. Either way, the resulting letter stays part of
+     * h-suffix handling, per the Settings > aspiration-mode choice
+     * ([AspirationPrefs]):
+     *   - ASPIRATED (default): if the character right before the
+     *     cursor is one of the 10 aspirable consonants, swap it for
+     *     its capital form instead of inserting "h".
+     *   - LITERAL: always just insert "h" normally (k+h types "kh").
+     * Either way, the resulting character(s) stay part of
      * [currentWord] for dictionary lookup.
      */
     private fun handleHKey(ic: InputConnection) {
+        val mode = AspirationPrefs.getMode(this)
         val prevChar = ic.getTextBeforeCursor(1, 0)?.toString()?.lastOrNull()
-        val aspirated = prevChar?.let { ASPIRATION_MAP[it] }
+        val aspirated = if (mode == AspirationMode.ASPIRATED) prevChar?.let { ASPIRATION_MAP[it] } else null
+
         if (aspirated != null) {
             ic.deleteSurroundingText(1, 0)
             ic.commitText(aspirated.toString(), 1)
@@ -181,8 +232,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Unused OnKeyboardActionListener callbacks, required by the interface ---
-    override fun onPress(primaryCode: Int) {}
-    override fun onRelease(primaryCode: Int) {}
     override fun onText(text: CharSequence?) {}
     override fun swipeLeft() {}
     override fun swipeRight() {}
@@ -195,6 +244,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
+        private const val SPACE_LONG_PRESS_MS = 500L
 
         // k g c z t d j q b s -> K G C Z T D J Q B S
         private val ASPIRATION_MAP: Map<Char, Char> = mapOf(
