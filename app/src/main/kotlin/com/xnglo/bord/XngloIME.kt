@@ -48,13 +48,20 @@ import android.widget.TextView
  * language variants) instead of an English word list -- the current
  * word is tracked in [currentWord] and the candidates strip above the
  * keyboard refreshes on every letter.
+ *
+ * Numbers/symbols: a "?123" key on the letter layout ([R.xml.keys_xi38])
+ * switches to [R.xml.keys_numeric] (digits, common symbols, an "ABC"
+ * key to switch back) via [toggleNumericMode]. Digits/symbols aren't
+ * tracked as part of xi38 words.
  */
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     private lateinit var keyboardView: XngloKeyboardView
-    private lateinit var keyboard: Keyboard
+    private lateinit var letterKeyboard: Keyboard
+    private lateinit var numericKeyboard: Keyboard
     private lateinit var candidatesRow: LinearLayout
     private lateinit var rootView: View
+    private var isNumericMode = false
 
     // The word currently being typed, since the last word boundary
     // (space/punctuation/enter/backspace-to-empty). Used to query
@@ -87,11 +94,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     override fun onCreateInputView(): View {
-        keyboard = Keyboard(this, R.xml.keys_xi38)
+        letterKeyboard = Keyboard(this, R.xml.keys_xi38)
+        numericKeyboard = Keyboard(this, R.xml.keys_numeric)
         val root = layoutInflater.inflate(R.layout.keyboard_view, null) as ViewGroup
         keyboardView = root.findViewById(R.id.xnglo_keyboard_view)
         candidatesRow = root.findViewById(R.id.candidates_row)
-        keyboardView.keyboard = keyboard
+        keyboardView.keyboard = letterKeyboard
         keyboardView.setOnKeyboardActionListener(this)
         rootView = root
         return root
@@ -99,7 +107,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        keyboardView.keyboard = keyboard
+        isNumericMode = false
+        keyboardView.keyboard = letterKeyboard
         currentWord.setLength(0)
         selectedTypeface = FontManager.getSelectedTypeface(this)
         keyboardView.setKeyTypeface(selectedTypeface)
@@ -135,13 +144,17 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 currentWord.setLength(0)
                 renderCandidates()
             }
+            MODE_SWITCH_CODE -> toggleNumericMode()
             LOWERCASE_H_CODE -> handleHKey(ic)
             else -> {
                 val committed = commitOrdinaryChar(ic, primaryCode)
                 if (committed != null) {
                     currentWord.append(committed)
-                    renderCandidates()
+                } else {
+                    // Digits/symbols aren't part of xi38 word tracking.
+                    currentWord.setLength(0)
                 }
+                renderCandidates()
             }
         }
     }
@@ -157,6 +170,13 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         if (primaryCode == WORD_BOUNDARY_SPACE) {
             spaceLongPressHandler.removeCallbacks(spaceLongPressRunnable)
         }
+    }
+
+    /** Switches between the letter keyboard and the numbers/symbols page (the "?123" / "ABC" key). */
+    private fun toggleNumericMode() {
+        isNumericMode = !isNumericMode
+        keyboardView.keyboard = if (isNumericMode) numericKeyboard else letterKeyboard
+        keyboardView.setKeyTypeface(selectedTypeface)
     }
 
     /** Commits a plain character and returns it, or null for non-letter codes we don't track as part of a word. */
@@ -240,6 +260,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     companion object {
         private const val KEYCODE_ENTER = -4
+        private const val MODE_SWITCH_CODE = -2
         private const val LOWERCASE_H_CODE = 104
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44

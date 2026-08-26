@@ -63,9 +63,10 @@
     </Row>
 
     <Row android:rowEdgeFlags="bottom">
-        <Key android:codes="44" android:keyLabel="," android:keyWidth="14%p" android:keyEdgeFlags="left" />
-        <Key android:codes="32" android:keyLabel="" android:keyWidth="52%p" />
-        <Key android:codes="46" android:keyLabel="." android:keyWidth="14%p" />
+        <Key android:codes="-2" android:keyLabel="?123" android:keyWidth="16%p" android:keyEdgeFlags="left" />
+        <Key android:codes="44" android:keyLabel="," android:keyWidth="10%p" />
+        <Key android:codes="32" android:keyLabel="" android:keyWidth="40%p" />
+        <Key android:codes="46" android:keyLabel="." android:keyWidth="10%p" />
         <Key android:codes="-4" android:keyLabel="⏎" android:keyWidth="20%p" android:keyEdgeFlags="right" />
     </Row>
 
