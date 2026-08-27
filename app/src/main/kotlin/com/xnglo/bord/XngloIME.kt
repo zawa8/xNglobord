@@ -30,10 +30,14 @@ import android.widget.TextView
  *      strip text) immediately, and is remembered via [FontManager]
  *      for next time. Default: hindixv38 (xNglohindi). Also reachable
  *      from [SettingsActivity] via the gear icon.
- *   2. Long-press caps on every a-z key: handled by KeyboardView
- *      natively via android:popupCharacters in keys_xi38.xml -- no
- *      code needed, the capital is the (only) popup option, so
- *      long-press 'a' types 'A' and so on.
+ *   2. Long-press caps on every a-z key: handled entirely in Kotlin
+ *      (onPress/onRelease + a Handler timer, same pattern as the
+ *      spacebar's long-press font picker below) -- NOT via
+ *      android:popupCharacters. That attribute triggers the
+ *      framework's own built-in mini-keyboard popup, a separate
+ *      internal KeyboardView instance that [XngloKeyboardView]'s
+ *      custom onDraw() doesn't reach, so it rendered as a plain white
+ *      unthemed rectangle. Long-press 'a' commits 'A' directly instead.
  *   3. h-suffix aspiration, mode selectable in Settings
  *      ([AspirationPrefs]): typing h immediately after one of
  *      k/g/c/z/t/d/j/q/b/s either (a) ASPIRATED mode (default):
@@ -84,6 +88,26 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         FontPickerPopup.show(this, rootView) { _ ->
             selectedTypeface = FontManager.getSelectedTypeface(this)
             keyboardView.setKeyTypeface(selectedTypeface)
+            renderCandidates()
+        }
+    }
+
+    // a-z long-press detection for caps (replaces android:popupCharacters
+    // -- see the class doc comment for why). Only one key can be
+    // physically held at a time, so a single shared handler/code is
+    // enough; letterLongPressCode tracks *which* key's timer is
+    // pending/fired so onKey() can tell whether this specific release
+    // was already handled by the long-press.
+    private val letterLongPressHandler = Handler(Looper.getMainLooper())
+    private var letterLongPressTriggered = false
+    private var letterLongPressCode = -1
+    private val letterLongPressRunnable = Runnable {
+        letterLongPressTriggered = true
+        val ic = currentInputConnection
+        val upper = letterLongPressCode.toChar().uppercaseChar()
+        if (ic != null) {
+            ic.commitText(upper.toString(), 1)
+            currentWord.append(upper)
             renderCandidates()
         }
     }
@@ -145,16 +169,30 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 renderCandidates()
             }
             MODE_SWITCH_CODE -> toggleNumericMode()
-            LOWERCASE_H_CODE -> handleHKey(ic)
-            else -> {
-                val committed = commitOrdinaryChar(ic, primaryCode)
-                if (committed != null) {
-                    currentWord.append(committed)
+            LOWERCASE_H_CODE -> {
+                if (letterLongPressTriggered && primaryCode == letterLongPressCode) {
+                    // Long-press already committed 'H' -- skip the
+                    // normal h-suffix aspiration handling for this release.
+                    letterLongPressTriggered = false
                 } else {
-                    // Digits/symbols aren't part of xi38 word tracking.
-                    currentWord.setLength(0)
+                    handleHKey(ic)
                 }
-                renderCandidates()
+            }
+            else -> {
+                if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
+                    // The long-press already committed the capital --
+                    // don't also commit the lowercase for this release.
+                    letterLongPressTriggered = false
+                } else {
+                    val committed = commitOrdinaryChar(ic, primaryCode)
+                    if (committed != null) {
+                        currentWord.append(committed)
+                    } else {
+                        // Digits/symbols aren't part of xi38 word tracking.
+                        currentWord.setLength(0)
+                    }
+                    renderCandidates()
+                }
             }
         }
     }
@@ -162,13 +200,19 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     override fun onPress(primaryCode: Int) {
         if (primaryCode == WORD_BOUNDARY_SPACE) {
             spaceLongPressTriggered = false
-            spaceLongPressHandler.postDelayed(spaceLongPressRunnable, SPACE_LONG_PRESS_MS)
+            spaceLongPressHandler.postDelayed(spaceLongPressRunnable, LONG_PRESS_MS)
+        } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
+            letterLongPressTriggered = false
+            letterLongPressCode = primaryCode
+            letterLongPressHandler.postDelayed(letterLongPressRunnable, LONG_PRESS_MS)
         }
     }
 
     override fun onRelease(primaryCode: Int) {
         if (primaryCode == WORD_BOUNDARY_SPACE) {
             spaceLongPressHandler.removeCallbacks(spaceLongPressRunnable)
+        } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
+            letterLongPressHandler.removeCallbacks(letterLongPressRunnable)
         }
     }
 
@@ -265,7 +309,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
-        private const val SPACE_LONG_PRESS_MS = 500L
+        private const val LONG_PRESS_MS = 500L
+        private const val LOWERCASE_A = 97
+        private const val LOWERCASE_Z = 122
 
         // k g c z t d j q b s -> K G C Z T D J Q B S
         private val ASPIRATION_MAP: Map<Char, Char> = mapOf(
