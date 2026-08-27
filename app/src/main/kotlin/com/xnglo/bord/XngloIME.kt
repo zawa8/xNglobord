@@ -15,14 +15,14 @@ import android.widget.TextView
 
 /**
  * IME service for the xNglobord xi38 keyboard (same idea as Gboard,
- * plus three xNglo-specific features -- see xnglofont.md for the
- * original spec).
+ * plus xNglo-specific features -- see xnglofont.md for the original
+ * spec).
  *
  * Layout: [R.xml.keys_xi38], standard QWERTY key positions -- the 26
  * lowercase xi38 base graphemes are literally the ordinary Latin a-z
  * letters, so no relabeling was needed.
  *
- * The three extra features:
+ * The extra features:
  *   1. In-keyboard font picker: long-press the spacebar to open
  *      [FontPickerPopup], listing all 11 xNglo hscii fonts
  *      ([LocalFonts]). Selecting one re-themes the keyboard (key
@@ -30,22 +30,19 @@ import android.widget.TextView
  *      strip text) immediately, and is remembered via [FontManager]
  *      for next time. Default: hindixv38 (xNglohindi). Also reachable
  *      from [SettingsActivity] via the gear icon.
- *   2. Long-press caps on every a-z key: handled entirely in Kotlin
- *      (onPress/onRelease + a Handler timer, same pattern as the
- *      spacebar's long-press font picker below) -- NOT via
+ *   2. Long-press caps on every a-z key, including h: handled entirely
+ *      in Kotlin (onPress/onRelease + a Handler timer, same pattern as
+ *      the spacebar's long-press font picker below) -- NOT via
  *      android:popupCharacters. That attribute triggers the
  *      framework's own built-in mini-keyboard popup, a separate
  *      internal KeyboardView instance that [XngloKeyboardView]'s
  *      custom onDraw() doesn't reach, so it rendered as a plain white
  *      unthemed rectangle. Long-press 'a' commits 'A' directly instead.
- *   3. h-suffix aspiration, mode selectable in Settings
- *      ([AspirationPrefs]): typing h immediately after one of
- *      k/g/c/z/t/d/j/q/b/s either (a) ASPIRATED mode (default):
- *      deletes that letter and inserts its capital form (k->K, g->G,
- *      c->C, z->Z, t->T, d->D, j->J, q->Q, b->B, s->S) instead of a
- *      literal h, or (b) LITERAL mode: just types "h" normally, so
- *      k+h types "kh". Standalone h (not preceded by one of those 10)
- *      always types normally either way.
+ *
+ * (h used to have a special h-suffix aspiration mode -- k+h -> K and
+ * so on. Removed: long-press already reaches every capital letter the
+ * same way as any other key, so the extra h-suffix behavior was
+ * redundant. h is now a plain letter key like any other.)
  *
  * Auto-complete uses the shared xi38 dictionary ([XngloDictionary],
  * pooling every .txt file under assets/dictionaries/ across all xNglo
@@ -169,15 +166,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 renderCandidates()
             }
             MODE_SWITCH_CODE -> toggleNumericMode()
-            LOWERCASE_H_CODE -> {
-                if (letterLongPressTriggered && primaryCode == letterLongPressCode) {
-                    // Long-press already committed 'H' -- skip the
-                    // normal h-suffix aspiration handling for this release.
-                    letterLongPressTriggered = false
-                } else {
-                    handleHKey(ic)
-                }
-            }
             else -> {
                 if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
                     // The long-press already committed the capital --
@@ -230,35 +218,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         return if (ch.isLetter()) ch else null
     }
 
-    /**
-     * h-suffix handling, per the Settings > aspiration-mode choice
-     * ([AspirationPrefs]):
-     *   - ASPIRATED (default): if the character right before the
-     *     cursor is one of the 10 aspirable consonants, swap it for
-     *     its capital form instead of inserting "h".
-     *   - LITERAL: always just insert "h" normally (k+h types "kh").
-     * Either way, the resulting character(s) stay part of
-     * [currentWord] for dictionary lookup.
-     */
-    private fun handleHKey(ic: InputConnection) {
-        val mode = AspirationPrefs.getMode(this)
-        val prevChar = ic.getTextBeforeCursor(1, 0)?.toString()?.lastOrNull()
-        val aspirated = if (mode == AspirationMode.ASPIRATED) prevChar?.let { ASPIRATION_MAP[it] } else null
-
-        if (aspirated != null) {
-            ic.deleteSurroundingText(1, 0)
-            ic.commitText(aspirated.toString(), 1)
-            if (currentWord.isNotEmpty()) {
-                currentWord.setLength(currentWord.length - 1)
-                currentWord.append(aspirated)
-            }
-        } else {
-            ic.commitText("h", 1)
-            currentWord.append('h')
-        }
-        renderCandidates()
-    }
-
     /** Rebuilds the candidate chip strip from [currentWord]'s dictionary matches. */
     private fun renderCandidates() {
         candidatesRow.removeAllViews()
@@ -305,18 +264,11 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     companion object {
         private const val KEYCODE_ENTER = -4
         private const val MODE_SWITCH_CODE = -2
-        private const val LOWERCASE_H_CODE = 104
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
         private const val LONG_PRESS_MS = 500L
         private const val LOWERCASE_A = 97
         private const val LOWERCASE_Z = 122
-
-        // k g c z t d j q b s -> K G C Z T D J Q B S
-        private val ASPIRATION_MAP: Map<Char, Char> = mapOf(
-            'k' to 'K', 'g' to 'G', 'c' to 'C', 'z' to 'Z', 't' to 'T',
-            'd' to 'D', 'j' to 'J', 'q' to 'Q', 'b' to 'B', 's' to 'S'
-        )
     }
 }

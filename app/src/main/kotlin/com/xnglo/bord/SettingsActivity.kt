@@ -6,17 +6,15 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
 
 /**
  * Settings for xNglobord: the font picker (same list as the
- * in-keyboard long-press-spacebar picker in XngloIME) and the h-suffix
- * aspiration mode. Registered as the IME's settingsActivity in
- * AndroidManifest.xml, reachable via the gear icon next to xNglobord
- * in Settings > System > Languages & input > On-screen keyboard.
+ * in-keyboard long-press-spacebar picker in XngloIME). Registered as
+ * the IME's settingsActivity in AndroidManifest.xml, reachable via
+ * the gear icon next to xNglobord in Settings > System > Languages &
+ * input > On-screen keyboard.
  */
 class SettingsActivity : Activity() {
 
@@ -43,7 +41,6 @@ class SettingsActivity : Activity() {
         root.addView(title)
 
         addFontPicker(root, padding)
-        addAspirationSetting(root, padding)
 
         return root
     }
@@ -78,48 +75,6 @@ class SettingsActivity : Activity() {
             setTextColor(0xFF64748B.toInt())
             textSize = 12f
             setPadding(0, 6, 0, padding)
-        }
-        root.addView(note)
-    }
-
-    private fun addAspirationSetting(root: LinearLayout, padding: Int) {
-        val label = TextView(this).apply {
-            text = "h key after k g c z t d j q b s"
-            setTextColor(0xFF64748B.toInt())
-            textSize = 13f
-            setPadding(0, 0, 0, 8)
-        }
-        root.addView(label)
-
-        val group = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
-
-        val literalButton = RadioButton(this).apply {
-            id = 1
-            text = "k + h \u2192 kh  (types both letters)"
-            setTextColor(0xFFE2E8F0.toInt())
-        }
-        val aspiratedButton = RadioButton(this).apply {
-            id = 2
-            text = "k + h \u2192 K  (replaces with the aspirated capital)"
-            setTextColor(0xFFE2E8F0.toInt())
-        }
-        group.addView(literalButton)
-        group.addView(aspiratedButton)
-        root.addView(group)
-
-        val currentMode = AspirationPrefs.getMode(this)
-        group.check(if (currentMode == AspirationMode.LITERAL) 1 else 2)
-
-        group.setOnCheckedChangeListener { _, checkedId ->
-            val mode = if (checkedId == 1) AspirationMode.LITERAL else AspirationMode.ASPIRATED
-            AspirationPrefs.setMode(this, mode)
-        }
-
-        val note = TextView(this).apply {
-            text = "Applies to k g c z t d j q b s \u2192 K G C Z T D J Q B S."
-            setTextColor(0xFF64748B.toInt())
-            textSize = 12f
-            setPadding(0, 6, 0, 0)
         }
         root.addView(note)
     }

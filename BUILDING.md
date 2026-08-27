@@ -51,11 +51,22 @@ Done:
 - `XngloIME.kt`: `InputMethodService` that inflates the keyboard, sends
   keystrokes to the focused field, handles backspace/space/enter
 - `keys_xi38.xml`: the real 38-sound layout, standard QWERTY positions
-  (the 26 lowercase base graphemes are literally a-z), with long-press
-  popups on every key for its capital form
-- h-suffix aspiration in `XngloIME.kt`: typing h right after
-  k/g/c/z/t/d/j/q/b/s swaps that letter for its aspirated capital
-  (K G C Z T D J Q B S) instead of inserting a literal h
+  (the 26 lowercase base graphemes are literally a-z)
+- long-press caps on every a-z key (including h), and long-press the
+  spacebar for the font picker: both handled entirely in Kotlin
+  (`XngloIME`'s onPress/onRelease + a Handler timer), NOT via
+  `android:popupCharacters`. That attribute triggers the framework's
+  own built-in mini-keyboard popup -- a separate internal KeyboardView
+  instance that `XngloKeyboardView`'s custom rendering doesn't reach,
+  so it rendered as a plain unthemed white rectangle. Long-press 'a'
+  commits 'A' directly instead, no framework popup involved.
+- `XngloKeyboardView`: a KeyboardView subclass that overrides `onDraw()`
+  and renders every key itself (background + label) using its own
+  Paint, so it can apply a custom Typeface. (An earlier version tried
+  reflection into the stock KeyboardView's private `mPaint` field --
+  that silently did nothing on a real device, since Android blocks
+  reflective access to framework-private fields for apps targeting
+  API 28+.)
 - shared xi38 dictionary (`XngloDictionary.kt` + `assets/dictionaries/`):
   pools word lists from every xNglo language variant present as a
   `.txt` file, prefix-matches the word currently being typed, and shows
@@ -70,13 +81,18 @@ Done:
   default hindixv38 (xNglohindi). Two ways to change it: **long-press
   the spacebar** for an in-keyboard popup list, or the gear icon in
   Settings > Languages & input > On-screen keyboard. Backed by
-  SharedPreferences. Applies to both the keyboard's key labels
-  (`XngloKeyboardView`, a KeyboardView subclass that exposes a
-  typeface setter via reflection) and the candidates strip text.
-- h-suffix aspiration mode, selectable in Settings
-  (`AspirationPrefs.kt`): ASPIRATED (default, k+h -> K etc.) or
-  LITERAL (k+h types "kh"). Covers k g c z t d j q b s -> K G C Z T D
-  J Q B S.
+  SharedPreferences. Applies to both the keyboard's key labels and the
+  candidates strip text.
+- numbers/symbols page (`keys_numeric.xml`): a "?123" key on the
+  letter layout switches to it (digits, common symbols, an "ABC" key
+  to switch back). Digits/symbols aren't tracked as part of xi38 words.
+
+Removed:
+- h-suffix aspiration (typing h right after k/g/c/z/t/d/j/q/b/s to get
+  its capital form, e.g. k+h -> K) and its Settings toggle. Long-press
+  already reaches every capital letter the same way as any other key,
+  so the h-suffix behavior was redundant -- h is now a plain letter
+  key like any other (tap = h, long-press = H).
 
 Not yet built:
 - more per-language dictionaries (xb38, xg38, xo38, xj38, xk38, xt38,
@@ -89,4 +105,4 @@ Not yet built:
   in-progress word
 - general Gboard-parity polish (auto-capitalization at sentence start,
   gesture typing, etc.) -- the spec says "rest all will be same as
-  Gboard" but only the 3 features above have concrete asks so far
+  Gboard" but only the features above have concrete asks so far
