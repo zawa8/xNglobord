@@ -7,7 +7,7 @@
 
   Digits/symbols aren't part of xi38 dictionary tracking (see
   XngloIME's commitOrdinaryChar), so no popupCharacters/aspiration
-  logic applies here: this page is intentionally plain.
+  logic applies here.
 -->
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
     android:keyWidth="10%p"
@@ -59,6 +59,14 @@
         <Key android:codes="59" android:keyLabel=";" android:keyWidth="12%p" />
         <Key android:codes="33" android:keyLabel="!" android:keyWidth="12%p" />
         <Key android:codes="-5" android:keyLabel="⌫" android:keyWidth="16%p" android:isRepeatable="true" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row>
+        <Key android:codes="123" android:keyLabel="{" android:keyWidth="20%p" android:keyEdgeFlags="left" />
+        <Key android:codes="91" android:keyLabel="[" android:keyWidth="20%p" />
+        <Key android:codes="95" android:keyLabel="_" android:keyWidth="20%p" />
+        <Key android:codes="93" android:keyLabel="]" android:keyWidth="20%p" />
+        <Key android:codes="125" android:keyLabel="}" android:keyWidth="20%p" android:keyEdgeFlags="right" />
     </Row>
 
     <Row android:rowEdgeFlags="bottom">

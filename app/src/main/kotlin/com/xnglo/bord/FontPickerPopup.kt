@@ -22,19 +22,21 @@ object FontPickerPopup {
 
     fun show(context: Context, anchor: View, onSelected: (LocalFontOption) -> Unit) {
         val currentId = FontManager.getSelectedFontId(context)
+        val density = context.resources.displayMetrics.density
 
         val list = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(0xFF111827.toInt())
-            setPadding(8, 8, 8, 8)
+            val pad = (8 * density).toInt()
+            setPadding(pad, pad, pad, pad)
         }
 
         for (option in LocalFonts.ALL) {
             val row = TextView(context).apply {
                 text = option.displayName
                 setTextColor(if (option.id == currentId) 0xFF38BDF8.toInt() else 0xFFE2E8F0.toInt())
-                textSize = 17f
-                setPadding(24, 20, 24, 20)
+                textSize = 20f
+                setPadding((24 * density).toInt(), (24 * density).toInt(), (24 * density).toInt(), (24 * density).toInt())
                 gravity = Gravity.START
                 try {
                     typeface = Typeface.createFromAsset(context.assets, "fonts/${option.assetFileName}")

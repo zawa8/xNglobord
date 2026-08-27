@@ -41,7 +41,7 @@ class XngloKeyboardView @JvmOverloads constructor(
     private var customTypeface: Typeface? = null
 
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFE2E8F0.toInt()
+        color = DEFAULT_LABEL_COLOR
         textAlign = Paint.Align.CENTER
         textSize = spToPx(26f)
     }
@@ -84,10 +84,29 @@ class XngloKeyboardView @JvmOverloads constructor(
 
             val label = key.label
             if (!label.isNullOrEmpty()) {
+                labelPaint.color = colorForLabel(label.toString())
                 val cx = rect.centerX()
                 val cy = rect.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f
                 canvas.drawText(label.toString(), cx, cy, labelPaint)
             }
+        }
+    }
+
+    /**
+     * Per-letter accent colors (Okabe-Ito colorblind-safe palette),
+     * grouped per the user's own memorization scheme:
+     *   a i u e o -> sky blue, h -> orange, c g -> bluish green,
+     *   x v -> yellow, q j -> reddish purple, everything else -> white.
+     */
+    private fun colorForLabel(label: String): Int {
+        if (label.length != 1) return DEFAULT_LABEL_COLOR
+        return when (label[0]) {
+            'a', 'i', 'u', 'e', 'o' -> COLOR_1_SKY_BLUE
+            'h' -> COLOR_2_ORANGE
+            'c', 'g' -> COLOR_3_BLUISH_GREEN
+            'x', 'v' -> COLOR_4_YELLOW
+            'q', 'j' -> COLOR_5_REDDISH_PURPLE
+            else -> DEFAULT_LABEL_COLOR
         }
     }
 
@@ -96,4 +115,13 @@ class XngloKeyboardView @JvmOverloads constructor(
 
     private fun dpToPx(dp: Float): Float =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
+
+    companion object {
+        private const val DEFAULT_LABEL_COLOR = 0xFFE2E8F0.toInt()
+        private const val COLOR_1_SKY_BLUE = 0xFF56B4E9.toInt()
+        private const val COLOR_2_ORANGE = 0xFFE69F00.toInt()
+        private const val COLOR_3_BLUISH_GREEN = 0xFF009E73.toInt()
+        private const val COLOR_4_YELLOW = 0xFFF0E442.toInt()
+        private const val COLOR_5_REDDISH_PURPLE = 0xFFCC79A7.toInt()
+    }
 }

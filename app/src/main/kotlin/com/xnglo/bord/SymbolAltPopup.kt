@@ -22,10 +22,13 @@ import android.widget.TextView
 object SymbolAltPopup {
 
     fun show(context: Context, anchor: View, options: List<String>, onSelected: (String) -> Unit) {
+        val density = context.resources.displayMetrics.density
+
         val row = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(0xFF111827.toInt())
-            setPadding(8, 8, 8, 8)
+            val pad = (8 * density).toInt()
+            setPadding(pad, pad, pad, pad)
         }
 
         val popup = PopupWindow(
@@ -42,9 +45,13 @@ object SymbolAltPopup {
             val chip = TextView(context).apply {
                 text = option
                 setTextColor(0xFFE2E8F0.toInt())
-                textSize = 20f
+                textSize = 30f // sp -- TextView.textSize is already sp-scaled
                 gravity = Gravity.CENTER
-                setPadding(36, 20, 36, 20)
+                // These were raw pixels before (not density-scaled), so
+                // they looked tiny on higher-density screens -- scale
+                // by density for a real ~56dp-tall touch target.
+                setPadding((28 * density).toInt(), (24 * density).toInt(), (28 * density).toInt(), (24 * density).toInt())
+                minWidth = (56 * density).toInt()
                 setOnClickListener {
                     popup.dismiss()
                     onSelected(option)
@@ -53,7 +60,6 @@ object SymbolAltPopup {
             row.addView(chip)
         }
 
-        val density = context.resources.displayMetrics.density
         popup.showAtLocation(
             anchor,
             Gravity.BOTTOM or Gravity.START,
