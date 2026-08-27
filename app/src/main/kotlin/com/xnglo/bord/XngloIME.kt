@@ -109,6 +109,18 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
+    // Comma long-press: shows , : ; via SymbolAltPopup.
+    private val commaLongPressHandler = Handler(Looper.getMainLooper())
+    private var commaLongPressTriggered = false
+    private val commaLongPressRunnable = Runnable {
+        commaLongPressTriggered = true
+        SymbolAltPopup.show(this, rootView, listOf(",", ":", ";")) { symbol ->
+            currentInputConnection?.commitText(symbol, 1)
+            currentWord.setLength(0)
+            renderCandidates()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         XngloDictionary.loadAll(this)
@@ -167,12 +179,31 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     renderCandidates()
                 }
             }
-            WORD_BOUNDARY_COMMA, WORD_BOUNDARY_PERIOD -> {
-                ic.commitText(primaryCode.toChar().toString(), 1)
+            WORD_BOUNDARY_COMMA -> {
+                if (commaLongPressTriggered) {
+                    // The long-press already showed the , : ; popup --
+                    // don't also insert a comma for this same press.
+                    commaLongPressTriggered = false
+                } else {
+                    ic.commitText(",", 1)
+                    currentWord.setLength(0)
+                    renderCandidates()
+                }
+            }
+            WORD_BOUNDARY_PERIOD -> {
+                ic.commitText(".", 1)
                 currentWord.setLength(0)
                 renderCandidates()
             }
             MODE_SWITCH_CODE -> toggleNumericMode()
+            in HEX_LETTER_CODES -> {
+                // L Y V W P F (hex digits 10-15, xi38's own letters
+                // instead of the standard A-F) -- not part of xi38
+                // word tracking, same as digits/symbols.
+                ic.commitText(primaryCode.toChar().toString(), 1)
+                currentWord.setLength(0)
+                renderCandidates()
+            }
             else -> {
                 if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
                     // The long-press already committed the capital --
@@ -196,6 +227,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         if (primaryCode == WORD_BOUNDARY_SPACE) {
             spaceLongPressTriggered = false
             spaceLongPressHandler.postDelayed(spaceLongPressRunnable, LONG_PRESS_MS)
+        } else if (primaryCode == WORD_BOUNDARY_COMMA) {
+            commaLongPressTriggered = false
+            commaLongPressHandler.postDelayed(commaLongPressRunnable, LONG_PRESS_MS)
         } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
             letterLongPressTriggered = false
             letterLongPressCode = primaryCode
@@ -206,6 +240,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     override fun onRelease(primaryCode: Int) {
         if (primaryCode == WORD_BOUNDARY_SPACE) {
             spaceLongPressHandler.removeCallbacks(spaceLongPressRunnable)
+        } else if (primaryCode == WORD_BOUNDARY_COMMA) {
+            commaLongPressHandler.removeCallbacks(commaLongPressRunnable)
         } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
             letterLongPressHandler.removeCallbacks(letterLongPressRunnable)
         }
@@ -277,5 +313,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val LONG_PRESS_MS = 500L
         private const val LOWERCASE_A = 97
         private const val LOWERCASE_Z = 122
+
+        // L Y V W P F -- hex digits 10-15
+        private val HEX_LETTER_CODES: Set<Int> = setOf(76, 89, 86, 87, 80, 70)
     }
 }

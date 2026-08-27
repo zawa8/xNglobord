@@ -28,6 +28,17 @@
         <Key android:codes="48" android:keyLabel="0" android:keyEdgeFlags="right" />
     </Row>
 
+    <!-- Hex digits 10-15, using xi38's own letters instead of the
+         standard A-F: L Y V W P F. -->
+    <Row>
+        <Key android:codes="76" android:keyLabel="L" android:keyEdgeFlags="left" />
+        <Key android:codes="89" android:keyLabel="Y" />
+        <Key android:codes="86" android:keyLabel="V" />
+        <Key android:codes="87" android:keyLabel="W" />
+        <Key android:codes="80" android:keyLabel="P" />
+        <Key android:codes="70" android:keyLabel="F" android:keyEdgeFlags="right" />
+    </Row>
+
     <Row>
         <Key android:codes="64" android:keyLabel="\@" android:keyEdgeFlags="left" android:horizontalGap="5%p" />
         <Key android:codes="35" android:keyLabel="#" />
