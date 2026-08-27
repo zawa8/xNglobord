@@ -43,7 +43,7 @@ class XngloKeyboardView @JvmOverloads constructor(
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFFE2E8F0.toInt()
         textAlign = Paint.Align.CENTER
-        textSize = spToPx(18f)
+        textSize = spToPx(26f)
     }
 
     private val fillPaintNormal = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111827.toInt() }

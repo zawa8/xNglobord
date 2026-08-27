@@ -27,9 +27,6 @@
         android:id="@+id/xnglo_keyboard_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0B0F19"
-        android:keyBackground="@drawable/key_background"
-        android:keyTextColor="#E2E8F0"
-        android:keyTextSize="18sp" />
+        android:background="#0B0F19" />
 
 </LinearLayout>
