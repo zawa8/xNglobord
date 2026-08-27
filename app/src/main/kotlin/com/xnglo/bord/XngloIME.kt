@@ -122,6 +122,13 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         candidatesRow = root.findViewById(R.id.candidates_row)
         keyboardView.keyboard = letterKeyboard
         keyboardView.setOnKeyboardActionListener(this)
+        // Disable KeyboardView's built-in key-preview bubble (the
+        // enlarged-key popup shown on press/long-press) -- it's a
+        // separate mechanism from android:popupCharacters (already
+        // removed) and from our custom onDraw(), so it still rendered
+        // unthemed/plain. We already show pressed-state feedback via
+        // our own background drawing in XngloKeyboardView.onDraw().
+        keyboardView.isPreviewEnabled = false
         rootView = root
         return root
     }
