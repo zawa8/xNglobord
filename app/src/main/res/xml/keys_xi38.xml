@@ -25,7 +25,11 @@
       preceded by one of those 10) just inserts "h" normally.
 
   Long-press on every a-z key (not just n/r) inserts its capital form,
-  same Kotlin-side mechanism (LONG_PRESS_MS in XngloIME.kt).
+  same Kotlin-side mechanism (LONG_PRESS_MS in XngloIME.kt). A shift
+  key (codes=-1) is also available for the same result via two taps
+  (shift, then the letter) instead of one long-press: one-shot,
+  reverts to lowercase after the next letter. See onKey()'s
+  SHIFT_CODE handling and isShiftActive in XngloIME.kt.
 -->
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
     android:keyWidth="10%p"
@@ -59,14 +63,15 @@
     </Row>
 
     <Row>
-        <Key android:codes="122" android:keyLabel="z" android:keyWidth="12%p" android:keyEdgeFlags="left" />
-        <Key android:codes="120" android:keyLabel="x" android:keyWidth="12%p" />
-        <Key android:codes="99" android:keyLabel="c" android:keyWidth="12%p" />
-        <Key android:codes="118" android:keyLabel="v" android:keyWidth="12%p" />
-        <Key android:codes="98" android:keyLabel="b" android:keyWidth="12%p" />
-        <Key android:codes="110" android:keyLabel="n" android:keyWidth="12%p" />
-        <Key android:codes="109" android:keyLabel="m" android:keyWidth="12%p" />
-        <Key android:codes="-5" android:keyLabel="⌫" android:keyWidth="16%p" android:isRepeatable="true" android:keyEdgeFlags="right" />
+        <Key android:codes="-1" android:keyLabel="⇧" android:keyWidth="12%p" android:keyEdgeFlags="left" />
+        <Key android:codes="122" android:keyLabel="z" android:keyWidth="11%p" />
+        <Key android:codes="120" android:keyLabel="x" android:keyWidth="11%p" />
+        <Key android:codes="99" android:keyLabel="c" android:keyWidth="11%p" />
+        <Key android:codes="118" android:keyLabel="v" android:keyWidth="11%p" />
+        <Key android:codes="98" android:keyLabel="b" android:keyWidth="11%p" />
+        <Key android:codes="110" android:keyLabel="n" android:keyWidth="11%p" />
+        <Key android:codes="109" android:keyLabel="m" android:keyWidth="11%p" />
+        <Key android:codes="-5" android:keyLabel="⌫" android:keyWidth="11%p" android:isRepeatable="true" android:keyEdgeFlags="right" />
     </Row>
 
     <Row android:rowEdgeFlags="bottom">

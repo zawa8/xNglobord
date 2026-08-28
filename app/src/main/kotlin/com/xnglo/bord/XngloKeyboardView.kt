@@ -25,7 +25,8 @@ import android.util.TypedValue
  * Fix: don't touch the framework's internals at all. Override
  * onDraw() and render every key ourselves -- background rectangle +
  * centered label text -- using our own Paint, which we fully own and
- * can set any Typeface on.
+ * can set any Typeface on. Also handles the shift key's highlighted
+ * background when active (see setShiftActive/XngloIME's isShiftActive).
  *
  * Known limitation: the long-press popup (showing the capital form of
  * a key) is drawn by a separate internal KeyboardView the framework
@@ -48,6 +49,7 @@ class XngloKeyboardView @JvmOverloads constructor(
 
     private val fillPaintNormal = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111827.toInt() }
     private val fillPaintPressed = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1E293B.toInt() }
+    private val fillPaintShiftActive = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1D4ED8.toInt() }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFF374151.toInt()
         style = Paint.Style.STROKE
@@ -56,6 +58,13 @@ class XngloKeyboardView @JvmOverloads constructor(
 
     private val cornerRadius = dpToPx(6f)
     private val keyMargin = dpToPx(2f)
+
+    private var shiftActive = false
+
+    fun setShiftActive(active: Boolean) {
+        shiftActive = active
+        invalidate()
+    }
 
     fun setKeyTypeface(typeface: Typeface?) {
         customTypeface = typeface
@@ -78,7 +87,12 @@ class XngloKeyboardView @JvmOverloads constructor(
                 (key.x + key.width).toFloat() - keyMargin,
                 (key.y + key.height).toFloat() - keyMargin
             )
-            val fill = if (key.pressed) fillPaintPressed else fillPaintNormal
+            val isShiftKey = key.codes.isNotEmpty() && key.codes[0] == SHIFT_CODE
+            val fill = when {
+                isShiftKey && shiftActive -> fillPaintShiftActive
+                key.pressed -> fillPaintPressed
+                else -> fillPaintNormal
+            }
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, fill)
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, strokePaint)
 
@@ -117,6 +131,7 @@ class XngloKeyboardView @JvmOverloads constructor(
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
 
     companion object {
+        private const val SHIFT_CODE = -1
         private const val DEFAULT_LABEL_COLOR = 0xFFE2E8F0.toInt()
         private const val COLOR_1_SKY_BLUE = 0xFF56B4E9.toInt()
         private const val COLOR_2_ORANGE = 0xFFE69F00.toInt()

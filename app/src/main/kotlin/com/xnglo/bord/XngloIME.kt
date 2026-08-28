@@ -38,6 +38,12 @@ import android.widget.TextView
  *      internal KeyboardView instance that [XngloKeyboardView]'s
  *      custom onDraw() doesn't reach, so it rendered as a plain white
  *      unthemed rectangle. Long-press 'a' commits 'A' directly instead.
+ *   3. Shift key (codes=-1): a faster two-tap alternative to
+ *      long-press for a single capital -- tap shift, then tap the
+ *      letter (a short tap). One-shot: commits the capital and turns
+ *      itself back off automatically. Tapping shift again cancels it.
+ *      Visual state (highlighted background while active) lives in
+ *      [XngloKeyboardView.setShiftActive].
  *
  * (h used to have a special h-suffix aspiration mode -- k+h -> K and
  * so on. Removed: long-press already reaches every capital letter the
@@ -77,6 +83,14 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     // takes effect immediately / on next focus.
     private var selectedTypeface: android.graphics.Typeface? = null
 
+    // Shift key: one-shot alternative to long-press for a single
+    // capital letter. Tap shift, then tap a letter (a normal short
+    // tap, not a long-press) -> that letter commits uppercase, and
+    // shift automatically turns back off. Tapping shift again before
+    // typing a letter cancels it. Long-pressing a letter while shift
+    // is on already gets a capital either way, so that also clears it.
+    private var isShiftActive = false
+
     // Space-key long-press detection for the font picker.
     private val spaceLongPressHandler = Handler(Looper.getMainLooper())
     private var spaceLongPressTriggered = false
@@ -105,6 +119,10 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         if (ic != null) {
             ic.commitText(upper.toString(), 1)
             currentWord.append(upper)
+            if (isShiftActive) {
+                isShiftActive = false
+                keyboardView.setShiftActive(false)
+            }
             renderCandidates()
         }
     }
@@ -148,7 +166,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         isNumericMode = false
+        isShiftActive = false
         keyboardView.keyboard = letterKeyboard
+        keyboardView.setShiftActive(false)
         currentWord.setLength(0)
         selectedTypeface = FontManager.getSelectedTypeface(this)
         keyboardView.setKeyTypeface(selectedTypeface)
@@ -196,6 +216,10 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 renderCandidates()
             }
             MODE_SWITCH_CODE -> toggleNumericMode()
+            SHIFT_CODE -> {
+                isShiftActive = !isShiftActive
+                keyboardView.setShiftActive(isShiftActive)
+            }
             in HEX_LETTER_CODES -> {
                 // L Y V W P F (hex digits 10-15, xi38's own letters
                 // instead of the standard A-F) -- not part of xi38
@@ -210,7 +234,13 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     // don't also commit the lowercase for this release.
                     letterLongPressTriggered = false
                 } else {
-                    val committed = commitOrdinaryChar(ic, primaryCode)
+                    val useShift = isShiftActive && primaryCode in LOWERCASE_A..LOWERCASE_Z
+                    val codeToCommit = if (useShift) primaryCode - CASE_OFFSET else primaryCode
+                    if (useShift) {
+                        isShiftActive = false
+                        keyboardView.setShiftActive(false)
+                    }
+                    val committed = commitOrdinaryChar(ic, codeToCommit)
                     if (committed != null) {
                         currentWord.append(committed)
                     } else {
@@ -252,6 +282,10 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         isNumericMode = !isNumericMode
         keyboardView.keyboard = if (isNumericMode) numericKeyboard else letterKeyboard
         keyboardView.setKeyTypeface(selectedTypeface)
+        if (isShiftActive) {
+            isShiftActive = false
+            keyboardView.setShiftActive(false)
+        }
     }
 
     /** Commits a plain character and returns it, or null for non-letter codes we don't track as part of a word. */
@@ -307,12 +341,14 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     companion object {
         private const val KEYCODE_ENTER = -4
         private const val MODE_SWITCH_CODE = -2
+        private const val SHIFT_CODE = -1
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
         private const val LONG_PRESS_MS = 500L
         private const val LOWERCASE_A = 97
         private const val LOWERCASE_Z = 122
+        private const val CASE_OFFSET = 32 // 'a' (97) - 'A' (65)
 
         // L Y V W P F -- hex digits 10-15
         private val HEX_LETTER_CODES: Set<Int> = setOf(76, 89, 86, 87, 80, 70)
