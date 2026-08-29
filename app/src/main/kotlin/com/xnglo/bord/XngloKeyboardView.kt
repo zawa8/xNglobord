@@ -26,7 +26,10 @@ import android.util.TypedValue
  * onDraw() and render every key ourselves -- background rectangle +
  * centered label text -- using our own Paint, which we fully own and
  * can set any Typeface on. Also handles the shift key's highlighted
- * background when active (see setShiftActive/XngloIME's isShiftActive).
+ * background when active (see setShiftActive/XngloIME's isShiftActive),
+ * shift-active uppercase label preview, and a smaller hintLabelPaint
+ * for labels too long to fit at the normal size (the spacebar's
+ * "long-press: change font" hint).
  *
  * Known limitation: the long-press popup (showing the capital form of
  * a key) is drawn by a separate internal KeyboardView the framework
@@ -45,6 +48,14 @@ class XngloKeyboardView @JvmOverloads constructor(
         color = DEFAULT_LABEL_COLOR
         textAlign = Paint.Align.CENTER
         textSize = spToPx(26f)
+    }
+
+    // For labels too long to fit at the normal size -- currently just
+    // the spacebar's "long-press: change font" hint.
+    private val hintLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = DEFAULT_LABEL_COLOR
+        textAlign = Paint.Align.CENTER
+        textSize = spToPx(11f)
     }
 
     private val fillPaintNormal = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111827.toInt() }
@@ -69,6 +80,7 @@ class XngloKeyboardView @JvmOverloads constructor(
     fun setKeyTypeface(typeface: Typeface?) {
         customTypeface = typeface
         labelPaint.typeface = typeface ?: Typeface.DEFAULT
+        hintLabelPaint.typeface = typeface ?: Typeface.DEFAULT
         invalidate()
     }
 
@@ -98,10 +110,17 @@ class XngloKeyboardView @JvmOverloads constructor(
 
             val label = key.label
             if (!label.isNullOrEmpty()) {
-                labelPaint.color = colorForLabel(label.toString())
+                val labelText = label.toString()
+                val displayText = if (shiftActive && labelText.length == 1 && labelText[0] in 'a'..'z') {
+                    labelText.uppercase()
+                } else {
+                    labelText
+                }
+                val paint = if (labelText.length > HINT_LABEL_THRESHOLD) hintLabelPaint else labelPaint
+                paint.color = colorForLabel(labelText)
                 val cx = rect.centerX()
-                val cy = rect.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f
-                canvas.drawText(label.toString(), cx, cy, labelPaint)
+                val cy = rect.centerY() - (paint.descent() + paint.ascent()) / 2f
+                canvas.drawText(displayText, cx, cy, paint)
             }
         }
     }
@@ -111,6 +130,8 @@ class XngloKeyboardView @JvmOverloads constructor(
      * grouped per the user's own memorization scheme:
      *   a i u e o -> sky blue, h -> orange, c g -> bluish green,
      *   x v -> yellow, q j -> reddish purple, everything else -> white.
+     * Also colors the numeric page's hex digits (0-9, L Y V W P F)
+     * yellow, matching the same COLOR_4_YELLOW used for x/v.
      */
     private fun colorForLabel(label: String): Int {
         if (label.length != 1) return DEFAULT_LABEL_COLOR
@@ -120,6 +141,7 @@ class XngloKeyboardView @JvmOverloads constructor(
             'c', 'g' -> COLOR_3_BLUISH_GREEN
             'x', 'v' -> COLOR_4_YELLOW
             'q', 'j' -> COLOR_5_REDDISH_PURPLE
+            in '0'..'9', 'L', 'Y', 'V', 'W', 'P', 'F' -> COLOR_4_YELLOW
             else -> DEFAULT_LABEL_COLOR
         }
     }
@@ -132,6 +154,7 @@ class XngloKeyboardView @JvmOverloads constructor(
 
     companion object {
         private const val SHIFT_CODE = -1
+        private const val HINT_LABEL_THRESHOLD = 4 // longer than this (e.g. the spacebar hint) uses hintLabelPaint
         private const val DEFAULT_LABEL_COLOR = 0xFFE2E8F0.toInt()
         private const val COLOR_1_SKY_BLUE = 0xFF56B4E9.toInt()
         private const val COLOR_2_ORANGE = 0xFFE69F00.toInt()

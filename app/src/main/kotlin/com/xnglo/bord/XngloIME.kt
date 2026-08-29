@@ -41,9 +41,11 @@ import android.widget.TextView
  *   3. Shift key (codes=-1): a faster two-tap alternative to
  *      long-press for a single capital -- tap shift, then tap the
  *      letter (a short tap). One-shot: commits the capital and turns
- *      itself back off automatically. Tapping shift again cancels it.
- *      Visual state (highlighted background while active) lives in
- *      [XngloKeyboardView.setShiftActive].
+ *      itself back off automatically. A second tap within
+ *      CAPS_LOCK_DOUBLE_TAP_MS locks it on (isCapsLock) instead --
+ *      every letter commits uppercase until a third tap turns it back
+ *      off. Visual state (highlighted background, uppercase label
+ *      preview) lives in [XngloKeyboardView].
  *
  * (h used to have a special h-suffix aspiration mode -- k+h -> K and
  * so on. Removed: long-press already reaches every capital letter the
@@ -84,12 +86,13 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     private var selectedTypeface: android.graphics.Typeface? = null
 
     // Shift key: one-shot alternative to long-press for a single
-    // capital letter. Tap shift, then tap a letter (a normal short
-    // tap, not a long-press) -> that letter commits uppercase, and
-    // shift automatically turns back off. Tapping shift again before
-    // typing a letter cancels it. Long-pressing a letter while shift
-    // is on already gets a capital either way, so that also clears it.
+    // capital letter (tap shift, then a short tap on a letter). A
+    // second shift tap within CAPS_LOCK_DOUBLE_TAP_MS turns on caps
+    // lock instead -- isShiftActive then stays true across multiple
+    // letters until a third shift tap turns it off.
     private var isShiftActive = false
+    private var isCapsLock = false
+    private var lastShiftTapTime = 0L
 
     // Space-key long-press detection for the font picker.
     private val spaceLongPressHandler = Handler(Looper.getMainLooper())
@@ -119,7 +122,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         if (ic != null) {
             ic.commitText(upper.toString(), 1)
             currentWord.append(upper)
-            if (isShiftActive) {
+            if (isShiftActive && !isCapsLock) {
                 isShiftActive = false
                 keyboardView.setShiftActive(false)
             }
@@ -167,6 +170,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         super.onStartInputView(info, restarting)
         isNumericMode = false
         isShiftActive = false
+        isCapsLock = false
         keyboardView.keyboard = letterKeyboard
         keyboardView.setShiftActive(false)
         currentWord.setLength(0)
@@ -216,10 +220,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 renderCandidates()
             }
             MODE_SWITCH_CODE -> toggleNumericMode()
-            SHIFT_CODE -> {
-                isShiftActive = !isShiftActive
-                keyboardView.setShiftActive(isShiftActive)
-            }
+            SHIFT_CODE -> handleShiftTap()
             in HEX_LETTER_CODES -> {
                 // L Y V W P F (hex digits 10-15, xi38's own letters
                 // instead of the standard A-F) -- not part of xi38
@@ -236,7 +237,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 } else {
                     val useShift = isShiftActive && primaryCode in LOWERCASE_A..LOWERCASE_Z
                     val codeToCommit = if (useShift) primaryCode - CASE_OFFSET else primaryCode
-                    if (useShift) {
+                    if (useShift && !isCapsLock) {
                         isShiftActive = false
                         keyboardView.setShiftActive(false)
                     }
@@ -277,13 +278,43 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
+    /**
+     * Shift tap-count logic:
+     *   1 tap: one-shot shift (isShiftActive on, off again after the
+     *          next letter -- see the "else" branch of onKey()).
+     *   2nd tap within CAPS_LOCK_DOUBLE_TAP_MS while shift is already
+     *          one-shot-armed: locks it on (isCapsLock = true,
+     *          isShiftActive stays true across every letter).
+     *   Next tap while isCapsLock is on ("3rd tap"): turns everything
+     *          back off.
+     */
+    private fun handleShiftTap() {
+        val now = System.currentTimeMillis()
+        when {
+            isCapsLock -> {
+                isCapsLock = false
+                isShiftActive = false
+            }
+            isShiftActive && (now - lastShiftTapTime) < CAPS_LOCK_DOUBLE_TAP_MS -> {
+                isCapsLock = true
+                // isShiftActive already true, stays true
+            }
+            else -> {
+                isShiftActive = !isShiftActive
+            }
+        }
+        lastShiftTapTime = now
+        keyboardView.setShiftActive(isShiftActive)
+    }
+
     /** Switches between the letter keyboard and the numbers/symbols page (the "?123" / "ABC" key). */
     private fun toggleNumericMode() {
         isNumericMode = !isNumericMode
         keyboardView.keyboard = if (isNumericMode) numericKeyboard else letterKeyboard
         keyboardView.setKeyTypeface(selectedTypeface)
-        if (isShiftActive) {
+        if (isShiftActive || isCapsLock) {
             isShiftActive = false
+            isCapsLock = false
             keyboardView.setShiftActive(false)
         }
     }
@@ -332,7 +363,16 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Unused OnKeyboardActionListener callbacks, required by the interface ---
-    override fun onText(text: CharSequence?) {}
+    // onText fires for keys with android:keyOutputText set (the
+    // multi-character operator symbols on the numeric page -- ==, !=,
+    // >=, <=, &&, || -- since a single android:codes int can't
+    // represent more than one character).
+    override fun onText(text: CharSequence?) {
+        if (text.isNullOrEmpty()) return
+        currentInputConnection?.commitText(text, 1)
+        currentWord.setLength(0)
+        renderCandidates()
+    }
     override fun swipeLeft() {}
     override fun swipeRight() {}
     override fun swipeDown() {}
@@ -346,6 +386,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
         private const val LONG_PRESS_MS = 500L
+        private const val CAPS_LOCK_DOUBLE_TAP_MS = 350L
         private const val LOWERCASE_A = 97
         private const val LOWERCASE_Z = 122
         private const val CASE_OFFSET = 32 // 'a' (97) - 'A' (65)
