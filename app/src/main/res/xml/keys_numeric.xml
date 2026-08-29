@@ -9,9 +9,11 @@
   XngloIME's commitOrdinaryChar), so no popupCharacters/aspiration
   logic applies here.
 
-  Hex digits (16 total: 0-9 then L Y V W P F for 10-15, in that
-  order, filling left-to-right/top-to-bottom) are laid out as a 4x4
-  grid and colored yellow: see XngloKeyboardView.colorForLabel().
+  Hex digits (16 total: 0-9, then L Y V W P F for 10-15) are colored
+  yellow: see XngloKeyboardView.colorForLabel(). Split across two rows
+  (a 10-key digit row (0-9) and a 6-key hex-letter row (L Y V W P F))
+  rather than a 4x4 grid, per your feedback: 10 keys per row,
+  matching the rest of this page's rows.
 
   The operator-symbols row uses android:keyOutputText instead of
   android:codes, since a single codes int can only represent one
@@ -25,33 +27,28 @@
     android:verticalGap="2px"
     android:keyHeight="@dimen/key_height">
 
-    <!-- Hex digits 0-F, 4x4 grid, yellow (colorForLabel handles this):
-         0 1 2 3 / 4 5 6 7 / 8 9 L Y / V W P F.
-         L Y V W P F are xi38's own letters for hex 10-15, replacing
-         the standard A-F. -->
     <Row>
-        <Key android:codes="48" android:keyLabel="0" android:keyWidth="25%p" android:keyEdgeFlags="left" />
-        <Key android:codes="49" android:keyLabel="1" android:keyWidth="25%p" />
-        <Key android:codes="50" android:keyLabel="2" android:keyWidth="25%p" />
-        <Key android:codes="51" android:keyLabel="3" android:keyWidth="25%p" android:keyEdgeFlags="right" />
+        <Key android:codes="48" android:keyLabel="0" android:keyEdgeFlags="left" />
+        <Key android:codes="49" android:keyLabel="1" />
+        <Key android:codes="50" android:keyLabel="2" />
+        <Key android:codes="51" android:keyLabel="3" />
+        <Key android:codes="52" android:keyLabel="4" />
+        <Key android:codes="53" android:keyLabel="5" />
+        <Key android:codes="54" android:keyLabel="6" />
+        <Key android:codes="55" android:keyLabel="7" />
+        <Key android:codes="56" android:keyLabel="8" />
+        <Key android:codes="57" android:keyLabel="9" android:keyEdgeFlags="right" />
     </Row>
+
+    <!-- L Y V W P F: xi38's own letters for hex 10-15, replacing the
+         standard A-F. -->
     <Row>
-        <Key android:codes="52" android:keyLabel="4" android:keyWidth="25%p" android:keyEdgeFlags="left" />
-        <Key android:codes="53" android:keyLabel="5" android:keyWidth="25%p" />
-        <Key android:codes="54" android:keyLabel="6" android:keyWidth="25%p" />
-        <Key android:codes="55" android:keyLabel="7" android:keyWidth="25%p" android:keyEdgeFlags="right" />
-    </Row>
-    <Row>
-        <Key android:codes="56" android:keyLabel="8" android:keyWidth="25%p" android:keyEdgeFlags="left" />
-        <Key android:codes="57" android:keyLabel="9" android:keyWidth="25%p" />
-        <Key android:codes="76" android:keyLabel="L" android:keyWidth="25%p" />
-        <Key android:codes="89" android:keyLabel="Y" android:keyWidth="25%p" android:keyEdgeFlags="right" />
-    </Row>
-    <Row>
-        <Key android:codes="86" android:keyLabel="V" android:keyWidth="25%p" android:keyEdgeFlags="left" />
-        <Key android:codes="87" android:keyLabel="W" android:keyWidth="25%p" />
-        <Key android:codes="80" android:keyLabel="P" android:keyWidth="25%p" />
-        <Key android:codes="70" android:keyLabel="F" android:keyWidth="25%p" android:keyEdgeFlags="right" />
+        <Key android:codes="76" android:keyLabel="L" android:keyWidth="16.66%p" android:keyEdgeFlags="left" />
+        <Key android:codes="89" android:keyLabel="Y" android:keyWidth="16.66%p" />
+        <Key android:codes="86" android:keyLabel="V" android:keyWidth="16.66%p" />
+        <Key android:codes="87" android:keyLabel="W" android:keyWidth="16.66%p" />
+        <Key android:codes="80" android:keyLabel="P" android:keyWidth="16.66%p" />
+        <Key android:codes="70" android:keyLabel="F" android:keyWidth="16.70%p" android:keyEdgeFlags="right" />
     </Row>
 
     <!-- Six programming comparison/logical operators. Uses
