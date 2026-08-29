@@ -1,25 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Numbers/symbols page. Reached from the main xi38 layout's "?123" key
-  (codes=-2, Keyboard.KEYCODE_MODE_CHANGE) and returned from via this
-  page's own "ABC" key (same code): see the mode-switch handling in
-  XngloIME.kt's onKey().
+  Numbers/symbols page, per kiz_pez_le-aut.md. Reached from the main
+  xi38 layout's "?123" key (codes=-2) and returned from via this
+  page's own "xyz" key (same code): see the mode-switch tap-count
+  handling (handleModeSwitchTap) in XngloIME.kt's onKey().
 
   Digits/symbols aren't part of xi38 dictionary tracking (see
   XngloIME's commitOrdinaryChar), so no popupCharacters/aspiration
   logic applies here.
 
-  Hex digits (16 total: 0-9, then L Y V W P F for 10-15) are colored
-  yellow: see XngloKeyboardView.colorForLabel(). Split across two rows
-  (a 10-key digit row (0-9) and a 6-key hex-letter row (L Y V W P F))
-  rather than a 4x4 grid, per your feedback: 10 keys per row,
-  matching the rest of this page's rows.
+  Layout (5 rows, per kiz_pez_le-aut.md):
+    0 1 2 3 + - / * % =
+    4 5 6 7 [==] [!=] [>=] [<=] [&&] [||]
+    8 9 L Y _ @ # $ & *
+    V W P F ( [ { ) ] }
+    xyz ' ` ~ | ^ \ ? .
 
-  The operator-symbols row uses android:keyOutputText instead of
+  Colors (XngloKeyboardView.colorForLabel/isOperatorKey): all 16 hex
+  digits (0-9, L Y V W P F) yellow; the 6 operator-symbol keys pink.
+
+  Row2's six operator keys use android:keyOutputText instead of
   android:codes, since a single codes int can only represent one
   character: keyOutputText lets KeyboardView pass a whole string
-  (e.g. "==") to onText() instead of onKey(). See XngloIME.kt's
-  onText() override.
+  (e.g. "==") to onText() instead of onKey(). Their codes are unused
+  placeholders (OPERATOR_CODES in XngloIME.kt/XngloKeyboardView.kt),
+  distinct negative values just so each Key element is valid XML.
 -->
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
     android:keyWidth="10%p"
@@ -32,76 +37,64 @@
         <Key android:codes="49" android:keyLabel="1" />
         <Key android:codes="50" android:keyLabel="2" />
         <Key android:codes="51" android:keyLabel="3" />
-        <Key android:codes="52" android:keyLabel="4" />
+        <Key android:codes="43" android:keyLabel="+" />
+        <Key android:codes="45" android:keyLabel="-" />
+        <Key android:codes="47" android:keyLabel="/" />
+        <Key android:codes="42" android:keyLabel="*" />
+        <Key android:codes="37" android:keyLabel="%" />
+        <Key android:codes="61" android:keyLabel="=" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row>
+        <Key android:codes="52" android:keyLabel="4" android:keyEdgeFlags="left" />
         <Key android:codes="53" android:keyLabel="5" />
         <Key android:codes="54" android:keyLabel="6" />
         <Key android:codes="55" android:keyLabel="7" />
-        <Key android:codes="56" android:keyLabel="8" />
-        <Key android:codes="57" android:keyLabel="9" android:keyEdgeFlags="right" />
+        <Key android:codes="-301" android:keyLabel="==" android:keyOutputText="==" />
+        <Key android:codes="-302" android:keyLabel="!=" android:keyOutputText="!=" />
+        <Key android:codes="-303" android:keyLabel="&gt;=" android:keyOutputText="&gt;=" />
+        <Key android:codes="-304" android:keyLabel="&lt;=" android:keyOutputText="&lt;=" />
+        <Key android:codes="-305" android:keyLabel="&amp;&amp;" android:keyOutputText="&amp;&amp;" />
+        <Key android:codes="-306" android:keyLabel="||" android:keyOutputText="||" android:keyEdgeFlags="right" />
     </Row>
 
-    <!-- L Y V W P F: xi38's own letters for hex 10-15, replacing the
-         standard A-F. -->
+    <!-- L Y V W P F: xi38's own letters for hex 10-15, replacing the standard A-F. -->
     <Row>
-        <Key android:codes="76" android:keyLabel="L" android:keyWidth="16.66%p" android:keyEdgeFlags="left" />
-        <Key android:codes="89" android:keyLabel="Y" android:keyWidth="16.66%p" />
-        <Key android:codes="86" android:keyLabel="V" android:keyWidth="16.66%p" />
-        <Key android:codes="87" android:keyLabel="W" android:keyWidth="16.66%p" />
-        <Key android:codes="80" android:keyLabel="P" android:keyWidth="16.66%p" />
-        <Key android:codes="70" android:keyLabel="F" android:keyWidth="16.70%p" android:keyEdgeFlags="right" />
-    </Row>
-
-    <!-- Six programming comparison/logical operators. Uses
-         keyOutputText for multi-char output (see note above: a
-         single codes int can only represent one character). codes
-         here are unused placeholders (never matched in XngloIME's
-         onKey when), distinct negative values just so each Key
-         element is valid XML. -->
-    <Row>
-        <Key android:codes="-301" android:keyLabel="==" android:keyOutputText="==" android:keyWidth="16.66%p" android:keyEdgeFlags="left" />
-        <Key android:codes="-302" android:keyLabel="!=" android:keyOutputText="!=" android:keyWidth="16.66%p" />
-        <Key android:codes="-303" android:keyLabel="&gt;=" android:keyOutputText="&gt;=" android:keyWidth="16.66%p" />
-        <Key android:codes="-304" android:keyLabel="&lt;=" android:keyOutputText="&lt;=" android:keyWidth="16.66%p" />
-        <Key android:codes="-305" android:keyLabel="&amp;&amp;" android:keyOutputText="&amp;&amp;" android:keyWidth="16.66%p" />
-        <Key android:codes="-306" android:keyLabel="||" android:keyOutputText="||" android:keyWidth="16.70%p" android:keyEdgeFlags="right" />
-    </Row>
-
-    <Row>
-        <Key android:codes="64" android:keyLabel="\@" android:keyEdgeFlags="left" android:horizontalGap="5%p" />
+        <Key android:codes="56" android:keyLabel="8" android:keyEdgeFlags="left" />
+        <Key android:codes="57" android:keyLabel="9" />
+        <Key android:codes="76" android:keyLabel="L" />
+        <Key android:codes="89" android:keyLabel="Y" />
+        <Key android:codes="95" android:keyLabel="_" />
+        <Key android:codes="64" android:keyLabel="\@" />
         <Key android:codes="35" android:keyLabel="#" />
         <Key android:codes="36" android:keyLabel="$" />
         <Key android:codes="38" android:keyLabel="&amp;" />
-        <Key android:codes="42" android:keyLabel="*" />
-        <Key android:codes="45" android:keyLabel="-" />
-        <Key android:codes="43" android:keyLabel="+" />
-        <Key android:codes="47" android:keyLabel="/" android:keyEdgeFlags="right" />
+        <Key android:codes="42" android:keyLabel="*" android:keyEdgeFlags="right" />
     </Row>
 
     <Row>
-        <Key android:codes="40" android:keyLabel="(" android:keyWidth="12%p" android:keyEdgeFlags="left" />
-        <Key android:codes="41" android:keyLabel=")" android:keyWidth="12%p" />
-        <Key android:codes="34" android:keyLabel="&quot;" android:keyWidth="12%p" />
-        <Key android:codes="39" android:keyLabel="'" android:keyWidth="12%p" />
-        <Key android:codes="58" android:keyLabel=":" android:keyWidth="12%p" />
-        <Key android:codes="59" android:keyLabel=";" android:keyWidth="12%p" />
-        <Key android:codes="33" android:keyLabel="!" android:keyWidth="12%p" />
-        <Key android:codes="-5" android:keyLabel="⌫" android:keyWidth="16%p" android:isRepeatable="true" android:keyEdgeFlags="right" />
-    </Row>
-
-    <Row>
-        <Key android:codes="123" android:keyLabel="{" android:keyWidth="20%p" android:keyEdgeFlags="left" />
-        <Key android:codes="91" android:keyLabel="[" android:keyWidth="20%p" />
-        <Key android:codes="95" android:keyLabel="_" android:keyWidth="20%p" />
-        <Key android:codes="93" android:keyLabel="]" android:keyWidth="20%p" />
-        <Key android:codes="125" android:keyLabel="}" android:keyWidth="20%p" android:keyEdgeFlags="right" />
+        <Key android:codes="86" android:keyLabel="V" android:keyEdgeFlags="left" />
+        <Key android:codes="87" android:keyLabel="W" />
+        <Key android:codes="80" android:keyLabel="P" />
+        <Key android:codes="70" android:keyLabel="F" />
+        <Key android:codes="40" android:keyLabel="(" />
+        <Key android:codes="91" android:keyLabel="[" />
+        <Key android:codes="123" android:keyLabel="{" />
+        <Key android:codes="41" android:keyLabel=")" />
+        <Key android:codes="93" android:keyLabel="]" />
+        <Key android:codes="125" android:keyLabel="}" android:keyEdgeFlags="right" />
     </Row>
 
     <Row android:rowEdgeFlags="bottom">
-        <Key android:codes="-2" android:keyLabel="ABC" android:keyWidth="16%p" android:keyEdgeFlags="left" />
-        <Key android:codes="44" android:keyLabel="," android:keyWidth="10%p" />
-        <Key android:codes="32" android:keyLabel="long-press: change font" android:keyWidth="40%p" />
-        <Key android:codes="63" android:keyLabel="\?" android:keyWidth="10%p" />
-        <Key android:codes="-4" android:keyLabel="⏎" android:keyWidth="20%p" android:keyEdgeFlags="right" />
+        <Key android:codes="-2" android:keyLabel="xyz" android:keyWidth="11%p" android:keyEdgeFlags="left" />
+        <Key android:codes="39" android:keyLabel="'" android:keyWidth="11%p" />
+        <Key android:codes="96" android:keyLabel="`" android:keyWidth="11%p" />
+        <Key android:codes="126" android:keyLabel="~" android:keyWidth="11%p" />
+        <Key android:codes="124" android:keyLabel="|" android:keyWidth="11%p" />
+        <Key android:codes="94" android:keyLabel="^" android:keyWidth="11%p" />
+        <Key android:codes="92" android:keyLabel="\\" android:keyWidth="11%p" />
+        <Key android:codes="63" android:keyLabel="\?" android:keyWidth="11%p" />
+        <Key android:codes="46" android:keyLabel="." android:keyWidth="12%p" android:keyEdgeFlags="right" />
     </Row>
 
 </Keyboard>

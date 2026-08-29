@@ -28,8 +28,13 @@
   same Kotlin-side mechanism (LONG_PRESS_MS in XngloIME.kt). A shift
   key (codes=-1) is also available for the same result via two taps
   (shift, then the letter) instead of one long-press: one-shot,
-  reverts to lowercase after the next letter. See onKey()'s
-  SHIFT_CODE handling and isShiftActive in XngloIME.kt.
+  reverts to lowercase after the next letter, or locks on with a
+  double-tap (isCapsLock in XngloIME.kt). See onKey()'s SHIFT_CODE
+  handling.
+
+  Row2 ends with a mic key (codes=-3, 🎤): voice input to xi38 text,
+  a pending feature (currently a no-op, see MIC_CODE in XngloIME.kt).
+  Bottom row now also has @ (per kiz_pez_le-aut.md).
 -->
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
     android:keyWidth="10%p"
@@ -51,7 +56,7 @@
     </Row>
 
     <Row>
-        <Key android:codes="97" android:keyLabel="a" android:keyEdgeFlags="left" android:horizontalGap="5%p" />
+        <Key android:codes="97" android:keyLabel="a" android:keyEdgeFlags="left" />
         <Key android:codes="115" android:keyLabel="s" />
         <Key android:codes="100" android:keyLabel="d" />
         <Key android:codes="102" android:keyLabel="f" />
@@ -59,7 +64,8 @@
         <Key android:codes="104" android:keyLabel="h" />
         <Key android:codes="106" android:keyLabel="j" />
         <Key android:codes="107" android:keyLabel="k" />
-        <Key android:codes="108" android:keyLabel="l" android:keyEdgeFlags="right" />
+        <Key android:codes="108" android:keyLabel="l" />
+        <Key android:codes="-3" android:keyLabel="🎤" android:keyEdgeFlags="right" />
     </Row>
 
     <Row>
@@ -75,10 +81,11 @@
     </Row>
 
     <Row android:rowEdgeFlags="bottom">
-        <Key android:codes="-2" android:keyLabel="\?123" android:keyWidth="16%p" android:keyEdgeFlags="left" />
+        <Key android:codes="-2" android:keyLabel="\?123" android:keyWidth="14%p" android:keyEdgeFlags="left" />
         <Key android:codes="44" android:keyLabel="," android:keyWidth="10%p" />
-        <Key android:codes="32" android:keyLabel="long-press: change font" android:keyWidth="40%p" />
+        <Key android:codes="32" android:keyLabel="long-press: change font" android:keyWidth="36%p" />
         <Key android:codes="46" android:keyLabel="." android:keyWidth="10%p" />
+        <Key android:codes="64" android:keyLabel="\@" android:keyWidth="10%p" />
         <Key android:codes="-4" android:keyLabel="⏎" android:keyWidth="20%p" android:keyEdgeFlags="right" />
     </Row>
 

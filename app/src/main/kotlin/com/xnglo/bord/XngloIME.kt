@@ -71,6 +71,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     private lateinit var candidatesRow: LinearLayout
     private lateinit var rootView: View
     private var isNumericMode = false
+    private var isNumericLocked = false
+    private var lastModeSwitchTapTime = 0L
 
     // The word currently being typed, since the last word boundary
     // (space/punctuation/enter/backspace-to-empty). Used to query
@@ -169,6 +171,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         isNumericMode = false
+        isNumericLocked = false
         isShiftActive = false
         isCapsLock = false
         keyboardView.keyboard = letterKeyboard
@@ -212,15 +215,20 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     ic.commitText(",", 1)
                     currentWord.setLength(0)
                     renderCandidates()
+                    maybeAutoReturnFromOneShotNumeric()
                 }
             }
             WORD_BOUNDARY_PERIOD -> {
                 ic.commitText(".", 1)
                 currentWord.setLength(0)
                 renderCandidates()
+                maybeAutoReturnFromOneShotNumeric()
             }
-            MODE_SWITCH_CODE -> toggleNumericMode()
+            MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
+            MIC_CODE -> {
+                // Voice input to xi38 text -- pending feature, no-op for now.
+            }
             in HEX_LETTER_CODES -> {
                 // L Y V W P F (hex digits 10-15, xi38's own letters
                 // instead of the standard A-F) -- not part of xi38
@@ -228,6 +236,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 ic.commitText(primaryCode.toChar().toString(), 1)
                 currentWord.setLength(0)
                 renderCandidates()
+                maybeAutoReturnFromOneShotNumeric()
             }
             else -> {
                 if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
@@ -249,6 +258,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                         currentWord.setLength(0)
                     }
                     renderCandidates()
+                    maybeAutoReturnFromOneShotNumeric()
                 }
             }
         }
@@ -307,15 +317,54 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         keyboardView.setShiftActive(isShiftActive)
     }
 
-    /** Switches between the letter keyboard and the numbers/symbols page (the "?123" / "ABC" key). */
-    private fun toggleNumericMode() {
-        isNumericMode = !isNumericMode
-        keyboardView.keyboard = if (isNumericMode) numericKeyboard else letterKeyboard
-        keyboardView.setKeyTypeface(selectedTypeface)
+    /**
+     * Mode-switch ("?123" / "xyz", both codes=-2) tap-count logic, per
+     * kiz_pez_le-aut.md: "single tap and double tap features on shift
+     * key and num key are also needed."
+     *   From letters, 1 tap: switches to the numeric page one-shot --
+     *     after the next key on that page commits, it automatically
+     *     switches back to letters (see maybeAutoReturnFromOneShotNumeric).
+     *   From letters, 2 taps within LONG_PRESS_MS-scale window: locks
+     *     the numeric page on (isNumericLocked) -- stays up until an
+     *     explicit "xyz" tap.
+     *   From the numeric page ("xyz"): always returns to letters
+     *     immediately (no tap-counting needed on the way back).
+     */
+    private fun handleModeSwitchTap() {
+        val now = System.currentTimeMillis()
+        val isDoubleTap = (now - lastModeSwitchTapTime) < CAPS_LOCK_DOUBLE_TAP_MS
+        lastModeSwitchTapTime = now
+
+        when {
+            !isNumericMode -> {
+                isNumericMode = true
+                isNumericLocked = false
+                keyboardView.keyboard = numericKeyboard
+                keyboardView.setKeyTypeface(selectedTypeface)
+            }
+            isDoubleTap && !isNumericLocked -> {
+                isNumericLocked = true
+            }
+            else -> {
+                isNumericMode = false
+                isNumericLocked = false
+                keyboardView.keyboard = letterKeyboard
+                keyboardView.setKeyTypeface(selectedTypeface)
+            }
+        }
         if (isShiftActive || isCapsLock) {
             isShiftActive = false
             isCapsLock = false
             keyboardView.setShiftActive(false)
+        }
+    }
+
+    /** After a normal (non-mode-switch) key commits, a one-shot (not locked) numeric page returns to letters automatically. */
+    private fun maybeAutoReturnFromOneShotNumeric() {
+        if (isNumericMode && !isNumericLocked) {
+            isNumericMode = false
+            keyboardView.keyboard = letterKeyboard
+            keyboardView.setKeyTypeface(selectedTypeface)
         }
     }
 
@@ -372,6 +421,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         currentInputConnection?.commitText(text, 1)
         currentWord.setLength(0)
         renderCandidates()
+        maybeAutoReturnFromOneShotNumeric()
     }
     override fun swipeLeft() {}
     override fun swipeRight() {}
@@ -382,6 +432,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val KEYCODE_ENTER = -4
         private const val MODE_SWITCH_CODE = -2
         private const val SHIFT_CODE = -1
+        private const val MIC_CODE = -3
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
