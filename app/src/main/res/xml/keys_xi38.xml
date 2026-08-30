@@ -82,8 +82,8 @@
 
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="-2" android:keyLabel="\?123" android:keyWidth="14%p" android:keyEdgeFlags="left" />
-        <Key android:codes="44" android:keyLabel="," android:keyWidth="10%p" />
-        <Key android:codes="32" android:keyLabel="long-press: change font" android:keyWidth="36%p" />
+        <Key android:codes="44" android:keyLabel=",:" android:keyWidth="10%p" />
+        <Key android:codes="32" android:keyLabel="longpres->font" android:keyWidth="36%p" />
         <Key android:codes="46" android:keyLabel="." android:keyWidth="10%p" />
         <Key android:codes="64" android:keyLabel="\@" android:keyWidth="10%p" />
         <Key android:codes="-4" android:keyLabel="⏎" android:keyWidth="20%p" android:keyEdgeFlags="right" />
