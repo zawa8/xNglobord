@@ -68,7 +68,7 @@
         <Key android:codes="76" android:keyLabel="L" />
         <Key android:codes="89" android:keyLabel="Y" />
         <Key android:codes="95" android:keyLabel="_" />
-        <Key android:codes="64" android:keyLabel="\@" />
+        <Key android:codes="34" android:keyLabel="\"" />
         <Key android:codes="35" android:keyLabel="#" />
         <Key android:codes="36" android:keyLabel="$" />
         <Key android:codes="38" android:keyLabel="&amp;" />
