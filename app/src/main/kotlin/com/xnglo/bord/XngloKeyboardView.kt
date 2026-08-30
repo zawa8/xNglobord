@@ -29,9 +29,9 @@ import android.util.TypedValue
  * background when active (see setShiftActive/XngloIME's isShiftActive),
  * shift-active uppercase label preview, a smaller hintLabelPaint
  * for labels too long to fit at the normal size (the spacebar's
- * "long-press: change font" hint), and pink coloring for the numeric
- * page's 6 operator-symbol keys (OPERATOR_CODES, per
- * kiz_pez_le-aut.md).
+ * "long-press: change font" hint), and per-letter accent colors
+ * (colorForLabel, per kiz_pez_le-aut.md) including pink for the
+ * numeric page's E U I O M X.
  *
  * Known limitation: the long-press popup (showing the capital form of
  * a key) is drawn by a separate internal KeyboardView the framework
@@ -119,8 +119,7 @@ class XngloKeyboardView @JvmOverloads constructor(
                     labelText
                 }
                 val paint = if (labelText.length > HINT_LABEL_THRESHOLD) hintLabelPaint else labelPaint
-                val isOperatorKey = key.codes.isNotEmpty() && key.codes[0] in OPERATOR_CODES
-                paint.color = if (isOperatorKey) COLOR_PINK else colorForLabel(labelText)
+                paint.color = colorForLabel(labelText)
                 val cx = rect.centerX()
                 val cy = rect.centerY() - (paint.descent() + paint.ascent()) / 2f
                 canvas.drawText(displayText, cx, cy, paint)
@@ -134,7 +133,9 @@ class XngloKeyboardView @JvmOverloads constructor(
      *   a i u e o -> sky blue, h -> orange, c g -> bluish green,
      *   x v -> yellow, q j -> reddish purple, everything else -> white.
      * Also colors the numeric page's hex digits (0-9, L Y V W P F)
-     * yellow, matching the same COLOR_4_YELLOW used for x/v.
+     * yellow, and E U I O M X pink (the plain letter keys an hscii
+     * font remaps to display as ==/!=/>=/<=/&&/||, per
+     * keys_numeric.xml's header comment).
      */
     private fun colorForLabel(label: String): Int {
         if (label.length != 1) return DEFAULT_LABEL_COLOR
@@ -145,6 +146,7 @@ class XngloKeyboardView @JvmOverloads constructor(
             'x', 'v' -> COLOR_4_YELLOW
             'q', 'j' -> COLOR_5_REDDISH_PURPLE
             in '0'..'9', 'L', 'Y', 'V', 'W', 'P', 'F' -> COLOR_4_YELLOW
+            'E', 'U', 'I', 'O', 'M', 'X' -> COLOR_PINK
             else -> DEFAULT_LABEL_COLOR
         }
     }
@@ -165,12 +167,5 @@ class XngloKeyboardView @JvmOverloads constructor(
         private const val COLOR_4_YELLOW = 0xFFF0E442.toInt()
         private const val COLOR_5_REDDISH_PURPLE = 0xFFCC79A7.toInt()
         private const val COLOR_PINK = 0xFFFF69B4.toInt()
-
-        // The 6 comparison/logical operator keys on the numeric page
-        // (== != >= <= && ||), per kiz_pez_le-aut.md's "E,U,I,O,M,X
-        // keys pink color" -- kept in sync with keys_numeric.xml's
-        // placeholder codes and XngloIME.kt's onText()/
-        // maybeAutoReturnFromOneShotNumeric() handling.
-        private val OPERATOR_CODES: Set<Int> = setOf(-301, -302, -303, -304, -305, -306)
     }
 }

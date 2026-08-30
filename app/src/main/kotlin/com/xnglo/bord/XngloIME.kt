@@ -238,6 +238,17 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 renderCandidates()
                 maybeAutoReturnFromOneShotNumeric()
             }
+            in OPERATOR_LETTER_CODES -> {
+                // E U I O M X -- plain letter keys (see keys_numeric.xml's
+                // header comment: an hscii font remaps how these glyphs
+                // *display*, e.g. as ==/!=/>=/<=/&&/||, without changing
+                // what actually gets typed). Not part of xi38 word
+                // tracking, same as digits/symbols.
+                ic.commitText(primaryCode.toChar().toString(), 1)
+                currentWord.setLength(0)
+                renderCandidates()
+                maybeAutoReturnFromOneShotNumeric()
+            }
             else -> {
                 if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
                     // The long-press already committed the capital --
@@ -412,10 +423,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Unused OnKeyboardActionListener callbacks, required by the interface ---
-    // onText fires for keys with android:keyOutputText set (the
-    // multi-character operator symbols on the numeric page -- ==, !=,
-    // >=, <=, &&, || -- since a single android:codes int can't
-    // represent more than one character).
+    // onText fires for any key with android:keyOutputText set. Nothing
+    // in the current layout uses that anymore (E U I O M X are plain
+    // single-char keys now, not multi-char keyOutputText -- see
+    // keys_numeric.xml's header comment), but kept implemented (rather
+    // than a no-op) since it's cheap and correct if a future key needs
+    // multi-character output again.
     override fun onText(text: CharSequence?) {
         if (text.isNullOrEmpty()) return
         currentInputConnection?.commitText(text, 1)
@@ -444,5 +457,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
         // L Y V W P F -- hex digits 10-15
         private val HEX_LETTER_CODES: Set<Int> = setOf(76, 89, 86, 87, 80, 70)
+
+        // E U I O M X -- plain letters an hscii font remaps to display
+        // as ==/!=/>=/<=/&&/|| (see keys_numeric.xml's header comment)
+        private val OPERATOR_LETTER_CODES: Set<Int> = setOf(69, 85, 73, 79, 77, 88)
     }
 }

@@ -11,20 +11,23 @@
 
   Layout (5 rows, per kiz_pez_le-aut.md):
     0 1 2 3 + - / * % =
-    4 5 6 7 [==] [!=] [>=] [<=] [&&] [||]
+    4 5 6 7 E U I O M X
     8 9 L Y _ @ # $ & *
     V W P F ( [ { ) ] }
     xyz ' ` ~ | ^ \ ? .
 
-  Colors (XngloKeyboardView.colorForLabel/isOperatorKey): all 16 hex
-  digits (0-9, L Y V W P F) yellow; the 6 operator-symbol keys pink.
+  Colors: all 16 hex digits (0-9, L Y V W P F) yellow; E U I O M X
+  pink (XngloKeyboardView.colorForLabel/OPERATOR_LETTERS).
 
-  Row2's six operator keys use android:keyOutputText instead of
-  android:codes, since a single codes int can only represent one
-  character: keyOutputText lets KeyboardView pass a whole string
-  (e.g. "==") to onText() instead of onKey(). Their codes are unused
-  placeholders (OPERATOR_CODES in XngloIME.kt/XngloKeyboardView.kt),
-  distinct negative values just so each Key element is valid XML.
+  E U I O M X are literal letter keys (codes 69/85/73/79/77/88, same
+  as any other key): NOT the actual operator symbols ==, !=, >=,
+  <=, &&, || (an earlier version of this file used keyOutputText to
+  output those symbols directly, which was wrong). The intent is the
+  same hscii trick used throughout xNglo: a custom font (one of the
+  xNglo hscii fonts) remaps these letter glyphs to *display* as those
+  operator symbols, without changing what character actually gets
+  typed. So the key always outputs plain E/U/I/O/M/X; only the visual
+  glyph changes when an hscii font is selected.
 -->
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
     android:keyWidth="10%p"
@@ -50,12 +53,12 @@
         <Key android:codes="53" android:keyLabel="5" />
         <Key android:codes="54" android:keyLabel="6" />
         <Key android:codes="55" android:keyLabel="7" />
-        <Key android:codes="-301" android:keyLabel="==" android:keyOutputText="==" />
-        <Key android:codes="-302" android:keyLabel="!=" android:keyOutputText="!=" />
-        <Key android:codes="-303" android:keyLabel="&gt;=" android:keyOutputText="&gt;=" />
-        <Key android:codes="-304" android:keyLabel="&lt;=" android:keyOutputText="&lt;=" />
-        <Key android:codes="-305" android:keyLabel="&amp;&amp;" android:keyOutputText="&amp;&amp;" />
-        <Key android:codes="-306" android:keyLabel="||" android:keyOutputText="||" android:keyEdgeFlags="right" />
+        <Key android:codes="69" android:keyLabel="E" />
+        <Key android:codes="85" android:keyLabel="U" />
+        <Key android:codes="73" android:keyLabel="I" />
+        <Key android:codes="79" android:keyLabel="O" />
+        <Key android:codes="77" android:keyLabel="M" />
+        <Key android:codes="88" android:keyLabel="X" android:keyEdgeFlags="right" />
     </Row>
 
     <!-- L Y V W P F: xi38's own letters for hex 10-15, replacing the standard A-F. -->
