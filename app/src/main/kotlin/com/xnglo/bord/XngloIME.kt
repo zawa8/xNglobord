@@ -137,7 +137,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     private var commaLongPressTriggered = false
     private val commaLongPressRunnable = Runnable {
         commaLongPressTriggered = true
-        SymbolAltPopup.show(this, rootView, listOf(",", ":", ";","<",'>','"')) { symbol ->
+        SymbolAltPopup.show(this, rootView, listOf(",", ":", ";","<",">","\"")) { symbol ->
             currentInputConnection?.commitText(symbol, 1)
             currentWord.setLength(0)
             renderCandidates()
