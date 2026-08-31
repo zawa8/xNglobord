@@ -1,31 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.xnglo.bord">
 
-    <uses-feature
-        android:name="android.software.input_methods"
-        android:required="true" />
+    <!-- Required for voice input (speech recognition) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher_placeholder"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:supportsRtl="true">
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
 
-        <!-- Settings screen (font picker) for the IME, reachable via the
-             gear icon in Settings > Languages & input > On-screen
-             keyboard > xNglobord. -->
-        <activity
-            android:name=".SettingsActivity"
-            android:label="@string/app_name"
-            android:exported="true" />
-
-        <!-- The IME itself. -->
+        <!-- Input method service -->
         <service
             android:name=".XngloIME"
             android:label="@string/app_name"
-            android:permission="android.permission.BIND_INPUT_METHOD"
-            android:exported="true"
-            android:settingsActivity="com.xnglo.bord.SettingsActivity">
+            android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod" />
             </intent-filter>
@@ -33,6 +25,12 @@
                 android:name="android.view.im"
                 android:resource="@xml/method" />
         </service>
+
+        <!-- Settings activity (gear icon) -->
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/app_name"
+            android:exported="true" />
 
     </application>
 
