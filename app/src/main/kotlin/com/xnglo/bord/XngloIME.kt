@@ -1,10 +1,17 @@
 package com.xnglo.bord
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -12,57 +19,9 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import java.util.Locale
 
-/**
- * IME service for the xNglobord xi38 keyboard (same idea as Gboard,
- * plus xNglo-specific features -- see xnglofont.md for the original
- * spec).
- *
- * Layout: [R.xml.keys_xi38], standard QWERTY key positions -- the 26
- * lowercase xi38 base graphemes are literally the ordinary Latin a-z
- * letters, so no relabeling was needed.
- *
- * The extra features:
- *   1. In-keyboard font picker: long-press the spacebar to open
- *      [FontPickerPopup], listing all 11 xNglo hscii fonts
- *      ([LocalFonts]). Selecting one re-themes the keyboard (key
- *      labels via [XngloKeyboardView.setKeyTypeface] + candidates
- *      strip text) immediately, and is remembered via [FontManager]
- *      for next time. Default: hindixv38 (xNglohindi). Also reachable
- *      from [SettingsActivity] via the gear icon.
- *   2. Long-press caps on every a-z key, including h: handled entirely
- *      in Kotlin (onPress/onRelease + a Handler timer, same pattern as
- *      the spacebar's long-press font picker below) -- NOT via
- *      android:popupCharacters. That attribute triggers the
- *      framework's own built-in mini-keyboard popup, a separate
- *      internal KeyboardView instance that [XngloKeyboardView]'s
- *      custom onDraw() doesn't reach, so it rendered as a plain white
- *      unthemed rectangle. Long-press 'a' commits 'A' directly instead.
- *   3. Shift key (codes=-1): a faster two-tap alternative to
- *      long-press for a single capital -- tap shift, then tap the
- *      letter (a short tap). One-shot: commits the capital and turns
- *      itself back off automatically. A second tap within
- *      CAPS_LOCK_DOUBLE_TAP_MS locks it on (isCapsLock) instead --
- *      every letter commits uppercase until a third tap turns it back
- *      off. Visual state (highlighted background, uppercase label
- *      preview) lives in [XngloKeyboardView].
- *
- * (h used to have a special h-suffix aspiration mode -- k+h -> K and
- * so on. Removed: long-press already reaches every capital letter the
- * same way as any other key, so the extra h-suffix behavior was
- * redundant. h is now a plain letter key like any other.)
- *
- * Auto-complete uses the shared xi38 dictionary ([XngloDictionary],
- * pooling every .txt file under assets/dictionaries/ across all xNglo
- * language variants) instead of an English word list -- the current
- * word is tracked in [currentWord] and the candidates strip above the
- * keyboard refreshes on every letter.
- *
- * Numbers/symbols: a "?123" key on the letter layout ([R.xml.keys_xi38])
- * switches to [R.xml.keys_numeric] (digits, common symbols, an "ABC"
- * key to switch back) via [toggleNumericMode]. Digits/symbols aren't
- * tracked as part of xi38 words.
- */
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     private lateinit var keyboardView: XngloKeyboardView
@@ -74,29 +33,13 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     private var isNumericLocked = false
     private var lastModeSwitchTapTime = 0L
 
-    // The word currently being typed, since the last word boundary
-    // (space/punctuation/enter/backspace-to-empty). Used to query
-    // XngloDictionary and to know how much text to replace when a
-    // candidate is tapped. Not a true composing-text span (no
-    // underline) -- a reasonable first pass; upgrading to
-    // ic.setComposingText() would be the natural next step.
     private val currentWord = StringBuilder()
-
-    // Re-read each time the keyboard is shown (onStartInputView), so a
-    // change made in SettingsActivity (or the in-keyboard font picker)
-    // takes effect immediately / on next focus.
     private var selectedTypeface: android.graphics.Typeface? = null
 
-    // Shift key: one-shot alternative to long-press for a single
-    // capital letter (tap shift, then a short tap on a letter). A
-    // second shift tap within CAPS_LOCK_DOUBLE_TAP_MS turns on caps
-    // lock instead -- isShiftActive then stays true across multiple
-    // letters until a third shift tap turns it off.
     private var isShiftActive = false
     private var isCapsLock = false
     private var lastShiftTapTime = 0L
 
-    // Space-key long-press detection for the font picker.
     private val spaceLongPressHandler = Handler(Looper.getMainLooper())
     private var spaceLongPressTriggered = false
     private val spaceLongPressRunnable = Runnable {
@@ -108,12 +51,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    // a-z long-press detection for caps (replaces android:popupCharacters
-    // -- see the class doc comment for why). Only one key can be
-    // physically held at a time, so a single shared handler/code is
-    // enough; letterLongPressCode tracks *which* key's timer is
-    // pending/fired so onKey() can tell whether this specific release
-    // was already handled by the long-press.
     private val letterLongPressHandler = Handler(Looper.getMainLooper())
     private var letterLongPressTriggered = false
     private var letterLongPressCode = -1
@@ -132,7 +69,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    // Comma long-press: shows , : ; via SymbolAltPopup.
     private val commaLongPressHandler = Handler(Looper.getMainLooper())
     private var commaLongPressTriggered = false
     private val commaLongPressRunnable = Runnable {
@@ -143,6 +79,23 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             renderCandidates()
         }
     }
+
+    // Voice input fields
+    private var speechRecognizer: SpeechRecognizer? = null
+    private val REQUEST_RECORD_AUDIO = 1001
+
+    // Devanagari to xi38 mapping (from unicode_hindi_array in hsciistr_file.ts)
+    private val devanagariToXi38Array = arrayOf(
+        "", "N", "N", ":", "xe", "x", "a", "_i", "_i", "_u", "_u", "ri", "li",
+        "_e", "_e", "_e", "_e", "ao", "_o", "o", "ou",
+        "k", "K", "g", "gh", "N", "c", "C", "z", "Z", "n", "t", "T", "d", "D", "n",
+        "j", "J", "q", "Q", "n", "n", "p", "f", "b", "B", "m", "y", "r", "r", "l", "l",
+        "l", "w", "S", "s", "s", "v", "oe", "ui", "", "!", "a", "i", "i", "u", "u",
+        "ri", "r", "e", "e", "e", "ye", "o", "oe", "o", "ou", "", "", "ou", "om",
+        "", "", "`", "'", "eei", "ui", "uui", "k", "K", "g", "z", "R", "R", "f", "y",
+        "ri", "li", "li", "li", ".", ".", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+        "_", "__", "x", "xo", "xo", "xo", "ui", "ui", "q", "Z", "y", "n", "z", "?", "d", "b"
+    )
 
     override fun onCreate() {
         super.onCreate()
@@ -157,12 +110,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         candidatesRow = root.findViewById(R.id.candidates_row)
         keyboardView.keyboard = letterKeyboard
         keyboardView.setOnKeyboardActionListener(this)
-        // Disable KeyboardView's built-in key-preview bubble (the
-        // enlarged-key popup shown on press/long-press) -- it's a
-        // separate mechanism from android:popupCharacters (already
-        // removed) and from our custom onDraw(), so it still rendered
-        // unthemed/plain. We already show pressed-state feedback via
-        // our own background drawing in XngloKeyboardView.onDraw().
         keyboardView.isPreviewEnabled = false
         rootView = root
         return root
@@ -197,8 +144,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             WORD_BOUNDARY_SPACE -> {
                 if (spaceLongPressTriggered) {
-                    // The long-press already opened the font picker --
-                    // don't also insert a space for this same press.
                     spaceLongPressTriggered = false
                 } else {
                     ic.commitText(" ", 1)
@@ -208,8 +153,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             WORD_BOUNDARY_COMMA -> {
                 if (commaLongPressTriggered) {
-                    // The long-press already showed the , : ; popup --
-                    // don't also insert a comma for this same press.
                     commaLongPressTriggered = false
                 } else {
                     ic.commitText(",", 1)
@@ -227,23 +170,16 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
             MIC_CODE -> {
-                // Voice input to xi38 text -- pending feature, no-op for now.
+                // Voice input to xi38 text
+                startVoiceInput()
             }
             in HEX_LETTER_CODES -> {
-                // L Y V W P F (hex digits 10-15, xi38's own letters
-                // instead of the standard A-F) -- not part of xi38
-                // word tracking, same as digits/symbols.
                 ic.commitText(primaryCode.toChar().toString(), 1)
                 currentWord.setLength(0)
                 renderCandidates()
                 maybeAutoReturnFromOneShotNumeric()
             }
             in OPERATOR_LETTER_CODES -> {
-                // E U I O M X -- plain letter keys (see keys_numeric.xml's
-                // header comment: an hscii font remaps how these glyphs
-                // *display*, e.g. as ==/!=/>=/<=/&&/||, without changing
-                // what actually gets typed). Not part of xi38 word
-                // tracking, same as digits/symbols.
                 ic.commitText(primaryCode.toChar().toString(), 1)
                 currentWord.setLength(0)
                 renderCandidates()
@@ -251,8 +187,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             else -> {
                 if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
-                    // The long-press already committed the capital --
-                    // don't also commit the lowercase for this release.
                     letterLongPressTriggered = false
                 } else {
                     val useShift = isShiftActive && primaryCode in LOWERCASE_A..LOWERCASE_Z
@@ -265,7 +199,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     if (committed != null) {
                         currentWord.append(committed)
                     } else {
-                        // Digits/symbols aren't part of xi38 word tracking.
                         currentWord.setLength(0)
                     }
                     renderCandidates()
@@ -299,16 +232,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    /**
-     * Shift tap-count logic:
-     *   1 tap: one-shot shift (isShiftActive on, off again after the
-     *          next letter -- see the "else" branch of onKey()).
-     *   2nd tap within CAPS_LOCK_DOUBLE_TAP_MS while shift is already
-     *          one-shot-armed: locks it on (isCapsLock = true,
-     *          isShiftActive stays true across every letter).
-     *   Next tap while isCapsLock is on ("3rd tap"): turns everything
-     *          back off.
-     */
     private fun handleShiftTap() {
         val now = System.currentTimeMillis()
         when {
@@ -318,7 +241,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             isShiftActive && (now - lastShiftTapTime) < CAPS_LOCK_DOUBLE_TAP_MS -> {
                 isCapsLock = true
-                // isShiftActive already true, stays true
             }
             else -> {
                 isShiftActive = !isShiftActive
@@ -328,19 +250,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         keyboardView.setShiftActive(isShiftActive)
     }
 
-    /**
-     * Mode-switch ("?123" / "xyz", both codes=-2) tap-count logic, per
-     * kiz_pez_le-aut.md: "single tap and double tap features on shift
-     * key and num key are also needed."
-     *   From letters, 1 tap: switches to the numeric page one-shot --
-     *     after the next key on that page commits, it automatically
-     *     switches back to letters (see maybeAutoReturnFromOneShotNumeric).
-     *   From letters, 2 taps within LONG_PRESS_MS-scale window: locks
-     *     the numeric page on (isNumericLocked) -- stays up until an
-     *     explicit "xyz" tap.
-     *   From the numeric page ("xyz"): always returns to letters
-     *     immediately (no tap-counting needed on the way back).
-     */
     private fun handleModeSwitchTap() {
         val now = System.currentTimeMillis()
         val isDoubleTap = (now - lastModeSwitchTapTime) < CAPS_LOCK_DOUBLE_TAP_MS
@@ -370,7 +279,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    /** After a normal (non-mode-switch) key commits, a one-shot (not locked) numeric page returns to letters automatically. */
     private fun maybeAutoReturnFromOneShotNumeric() {
         if (isNumericMode && !isNumericLocked) {
             isNumericMode = false
@@ -379,14 +287,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    /** Commits a plain character and returns it, or null for non-letter codes we don't track as part of a word. */
     private fun commitOrdinaryChar(ic: InputConnection, primaryCode: Int): Char? {
         val ch = primaryCode.toChar()
         ic.commitText(ch.toString(), 1)
         return if (ch.isLetter()) ch else null
     }
 
-    /** Rebuilds the candidate chip strip from [currentWord]'s dictionary matches. */
     private fun renderCandidates() {
         candidatesRow.removeAllViews()
         val word = currentWord.toString()
@@ -411,7 +317,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    /** Replaces the in-progress word in the text field with the tapped candidate. */
     private fun applyCandidate(word: String) {
         val ic = currentInputConnection ?: return
         if (currentWord.isNotEmpty()) {
@@ -422,13 +327,137 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         renderCandidates()
     }
 
-    // --- Unused OnKeyboardActionListener callbacks, required by the interface ---
-    // onText fires for any key with android:keyOutputText set. Nothing
-    // in the current layout uses that anymore (E U I O M X are plain
-    // single-char keys now, not multi-char keyOutputText -- see
-    // keys_numeric.xml's header comment), but kept implemented (rather
-    // than a no-op) since it's cheap and correct if a future key needs
-    // multi-character output again.
+    // --- Voice input methods ---
+    private fun startVoiceInput() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_RECORD_AUDIO)
+            return
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now (Hindi)")
+        }
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+            setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {}
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() {}
+
+                override fun onError(error: Int) {
+                    val message = when (error) {
+                        SpeechRecognizer.ERROR_AUDIO -> "Audio error"
+                        SpeechRecognizer.ERROR_CLIENT -> "Client error"
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission denied"
+                        SpeechRecognizer.ERROR_NETWORK -> "Network error"
+                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
+                        SpeechRecognizer.ERROR_NO_MATCH -> "No match"
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
+                        SpeechRecognizer.ERROR_SERVER -> "Server error"
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
+                        else -> "Unknown error"
+                    }
+                    Toast.makeText(this@XngloIME, "Error: $message", Toast.LENGTH_SHORT).show()
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                }
+
+                override fun onResults(results: Bundle?) {
+                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    if (!matches.isNullOrEmpty()) {
+                        val devanagariText = matches[0]
+                        val xi38Text = devanagariToXi38(devanagariText)
+                        currentInputConnection?.commitText(xi38Text, 1)
+                        currentWord.setLength(0)
+                        renderCandidates()
+                    }
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                }
+
+                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+            startListening(intent)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_RECORD_AUDIO && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startVoiceInput()
+        } else {
+            Toast.makeText(this, "Microphone permission is required", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun devanagariToXi38(input: String): String {
+        // Pre-processing
+        var processed = input
+            .replace(Regex("(^|[\\b\\s])क्ष"), "$1s")
+            .replace(Regex("^क्ष"), "s")
+            .replace("ज्ञ", "gy")
+
+        val result = StringBuilder()
+        val chars = processed.toCharArray()
+        var i = 0
+        while (i < chars.size) {
+            val ch = chars[i]
+            val codePoint = ch.code
+            if (codePoint in 0x0900..0x097F) {
+                val index = codePoint - 0x0900
+                if (index < devanagariToXi38Array.size) {
+                    val mapped = devanagariToXi38Array[index]
+                    result.append(mapped)
+
+                    // Add inherent vowel 'x' after consonants not followed by virama/vowel sign
+                    val isConsonant = codePoint in 0x0915..0x0939 || codePoint in 0x0958..0x095F
+                    if (isConsonant) {
+                        val next = if (i + 1 < chars.size) chars[i + 1] else null
+                        val nextIsVirama = next != null && next.code == 0x094D
+                        val nextIsVowelSign = next != null && next.code in 0x093E..0x094C
+                        val nextIsNukta = next != null && next.code == 0x093C
+                        if (!nextIsVirama && !nextIsVowelSign && !nextIsNukta && i > 0) {
+                            result.append("x")
+                        }
+                    }
+                } else {
+                    result.append(ch)
+                }
+            } else {
+                result.append(ch)
+            }
+            i++
+        }
+
+        // Post-processing
+        var xi38 = result.toString()
+        xi38 = xi38
+            .replace(Regex("^#S"), "S")
+            .replace(Regex("(\\W)#S"), "$1S")
+            .replace("#S", "kS")
+            .replace(Regex("^_"), "")
+            .replace(Regex("(\\W)_"), "$1")
+            .replace(Regex("([aiueo])_"), "$1")
+            .replace("_i", "yi")
+            .replace("_e", "ye")
+            .replace("_u", "xu")
+            .replace(Regex("N$"), "")
+            .replace(Regex("N(\\W)"), "$1")
+            .replace("Nb", "mb")
+            .replace("NB", "mB")
+            .replace("Np", "mp")
+            .replace("Nf", "mf")
+            .replace(Regex("N(?![kKgG])"), "n")
+        return xi38
+    }
+
     override fun onText(text: CharSequence?) {
         if (text.isNullOrEmpty()) return
         currentInputConnection?.commitText(text, 1)
@@ -453,13 +482,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val CAPS_LOCK_DOUBLE_TAP_MS = 350L
         private const val LOWERCASE_A = 97
         private const val LOWERCASE_Z = 122
-        private const val CASE_OFFSET = 32 // 'a' (97) - 'A' (65)
+        private const val CASE_OFFSET = 32
 
-        // L Y V W P F -- hex digits 10-15
         private val HEX_LETTER_CODES: Set<Int> = setOf(76, 89, 86, 87, 80, 70)
-
-        // E U I O M X -- plain letters an hscii font remaps to display
-        // as ==/!=/>=/<=/&&/|| (see keys_numeric.xml's header comment)
         private val OPERATOR_LETTER_CODES: Set<Int> = setOf(69, 85, 73, 79, 77, 88)
     }
 }
