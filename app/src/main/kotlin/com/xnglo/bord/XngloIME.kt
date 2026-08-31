@@ -20,7 +20,10 @@ import android.view.inputmethod.InputConnection
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import java.util.Locale
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.SpeechService
+import java.io.IOException
 
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
@@ -80,10 +83,11 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    // Voice input fields
-    private var speechRecognizer: SpeechRecognizer? = null
+    // Vosk fields
+    private var speechService: SpeechService? = null
+    private var voskModel: Model? = null
 
-    // Devanagari to xi38 mapping (from unicode_hindi_array in hsciistr_file.ts)
+    // Devanagari to xi38 mapping (from hsciistr_file.ts)
     private val devanagariToXi38Array = arrayOf(
         "", "N", "N", ":", "xe", "x", "a", "_i", "_i", "_u", "_u", "ri", "li",
         "_e", "_e", "_e", "_e", "ao", "_o", "o", "ou",
@@ -169,7 +173,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
             MIC_CODE -> {
-                // Voice input to xi38 text
                 startVoiceInput()
             }
             in HEX_LETTER_CODES -> {
@@ -326,103 +329,88 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         renderCandidates()
     }
 
-    // --- Voice input methods ---
+    // --- Vosk Voice Input ---
     private fun startVoiceInput() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_SHORT).show()
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Please grant microphone permission in Settings", Toast.LENGTH_LONG).show()
             return
         }
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now (Hindi)")
-        }
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-            setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {}
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {}
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
-
-                override fun onError(error: Int) {
-                    val message = when (error) {
-                        SpeechRecognizer.ERROR_AUDIO -> "Audio error"
-                        SpeechRecognizer.ERROR_CLIENT -> "Client error"
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Please grant microphone permission in Settings"
-                        SpeechRecognizer.ERROR_NETWORK -> "Network error"
-                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
-                        SpeechRecognizer.ERROR_NO_MATCH -> "No match"
-                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
-                        SpeechRecognizer.ERROR_SERVER -> "Server error"
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
-                        else -> "Unknown error"
-                    }
-                    Toast.makeText(this@XngloIME, "Error: $message", Toast.LENGTH_LONG).show()
-                    speechRecognizer?.destroy()
-                    speechRecognizer = null
-                }
-
-                override fun onResults(results: Bundle?) {
-                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!matches.isNullOrEmpty()) {
-                        val devanagariText = matches[0]
-                        val xi38Text = devanagariToXi38(devanagariText)
+        try {
+            if (voskModel == null) {
+                Model.setLogLevel(0)
+                voskModel = Model(this, "model-hi")
+            }
+            val recognizer = Recognizer(voskModel, 16000f)
+            SpeechService.init(this)
+            speechService = SpeechService(recognizer, 16000f)
+            speechService?.startListening(object : org.vosk.android.RecognitionListener {
+                override fun onPartialResult(hypothesis: String?) {}
+                override fun onResult(hypothesis: String?) {
+                    if (hypothesis != null) {
+                        val xi38Text = convertVoskResultToXi38(hypothesis)
                         currentInputConnection?.commitText(xi38Text, 1)
                         currentWord.setLength(0)
                         renderCandidates()
                     }
-                    speechRecognizer?.destroy()
-                    speechRecognizer = null
                 }
-
-                override fun onPartialResults(partialResults: Bundle?) {}
-                override fun onEvent(eventType: Int, params: Bundle?) {}
+                override fun onFinalResult(hypothesis: String?) {
+                    if (hypothesis != null) {
+                        val xi38Text = convertVoskResultToXi38(hypothesis)
+                        currentInputConnection?.commitText(xi38Text, 1)
+                        currentWord.setLength(0)
+                        renderCandidates()
+                    }
+                    speechService?.stop()
+                }
+                override fun onError(exception: Exception?) {
+                    Toast.makeText(this@XngloIME, "Speech error: ${exception?.message}", Toast.LENGTH_LONG).show()
+                    speechService?.stop()
+                }
+                override fun onTimeout() {
+                    Toast.makeText(this@XngloIME, "Speech timeout", Toast.LENGTH_SHORT).show()
+                    speechService?.stop()
+                }
             })
-            startListening(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Vosk error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun convertVoskResultToXi38(jsonResult: String): String {
+        try {
+            val json = org.json.JSONObject(jsonResult)
+            val text = json.optString("text", "")
+            return if (text.any { it.code in 0x0900..0x097F }) {
+                devanagariToXi38(text)
+            } else {
+                text
+            }
+        } catch (e: Exception) {
+            return jsonResult
         }
     }
 
     private fun devanagariToXi38(input: String): String {
-        // Pre-processing (from TypeScript file)
         var processed = input
             .replace(Regex("(^|[\\b\\s])क्ष"), "$1s")
             .replace(Regex("^क्ष"), "s")
             .replace("ज्ञ", "gy")
 
         val result = StringBuilder()
-        val chars = processed.toCharArray()
-        var i = 0
-        while (i < chars.size) {
-            val ch = chars[i]
+        for (ch in processed) {
             val codePoint = ch.code
             if (codePoint in 0x0900..0x097F) {
                 val index = codePoint - 0x0900
                 if (index < devanagariToXi38Array.size) {
-                    val mapped = devanagariToXi38Array[index]
-                    result.append(mapped)
-
-                    // Add inherent vowel 'x' after consonants not followed by virama/vowel sign
-                    val isConsonant = codePoint in 0x0915..0x0939 || codePoint in 0x0958..0x095F
-                    if (isConsonant) {
-                        val next = if (i + 1 < chars.size) chars[i + 1] else null
-                        val nextIsVirama = next != null && next.code == 0x094D
-                        val nextIsVowelSign = next != null && next.code in 0x093E..0x094C
-                        val nextIsNukta = next != null && next.code == 0x093C
-                        if (!nextIsVirama && !nextIsVowelSign && !nextIsNukta && i > 0) {
-                            result.append("x")
-                        }
-                    }
+                    result.append(devanagariToXi38Array[index])
                 } else {
                     result.append(ch)
                 }
             } else {
                 result.append(ch)
             }
-            i++
         }
 
-        // Post-processing
         var xi38 = result.toString()
         xi38 = xi38
             .replace(Regex("^#S"), "S")
@@ -442,6 +430,14 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             .replace("Nf", "mf")
             .replace(Regex("N(?![kKgG])"), "n")
         return xi38
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        speechService?.stop()
+        speechService = null
+        voskModel?.close()
+        voskModel = null
     }
 
     override fun onText(text: CharSequence?) {
@@ -469,7 +465,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val LOWERCASE_A = 97
         private const val LOWERCASE_Z = 122
         private const val CASE_OFFSET = 32
-
         private val HEX_LETTER_CODES: Set<Int> = setOf(76, 89, 86, 87, 80, 70)
         private val OPERATOR_LETTER_CODES: Set<Int> = setOf(69, 85, 73, 79, 77, 88)
     }
