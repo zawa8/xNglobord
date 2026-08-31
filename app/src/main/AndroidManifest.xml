@@ -3,7 +3,7 @@
 
     <!-- Required for voice input (speech recognition) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
+<uses-permission android:name="android.permission.INTERNET" />
     <uses-feature
         android:name="android.software.input_methods"
         android:required="true" />
