@@ -330,6 +330,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Vosk Voice Input ---
+    // --- Vosk Voice Input ---
     private fun startVoiceInput() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Please grant microphone permission in Settings", Toast.LENGTH_LONG).show()
@@ -337,11 +338,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
         try {
             if (voskModel == null) {
-                Model.setLogLevel(0)
-                voskModel = Model(this, "model-hi")
+                voskModel = Model("model-hi")
             }
             val recognizer = Recognizer(voskModel, 16000f)
-            SpeechService.init(this)
             speechService = SpeechService(recognizer, 16000f)
             speechService?.startListening(object : org.vosk.android.RecognitionListener {
                 override fun onPartialResult(hypothesis: String?) {}
@@ -375,7 +374,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             Toast.makeText(this, "Vosk error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
-
+	
     private fun convertVoskResultToXi38(jsonResult: String): String {
         try {
             val json = org.json.JSONObject(jsonResult)
