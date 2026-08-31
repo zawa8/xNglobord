@@ -82,7 +82,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     // Voice input fields
     private var speechRecognizer: SpeechRecognizer? = null
-    private val REQUEST_RECORD_AUDIO = 1001
 
     // Devanagari to xi38 mapping (from unicode_hindi_array in hsciistr_file.ts)
     private val devanagariToXi38Array = arrayOf(
@@ -329,10 +328,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
     // --- Voice input methods ---
     private fun startVoiceInput() {
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_RECORD_AUDIO)
-            return
-        }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_SHORT).show()
             return
@@ -354,7 +349,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     val message = when (error) {
                         SpeechRecognizer.ERROR_AUDIO -> "Audio error"
                         SpeechRecognizer.ERROR_CLIENT -> "Client error"
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission denied"
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Please grant microphone permission in Settings"
                         SpeechRecognizer.ERROR_NETWORK -> "Network error"
                         SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
                         SpeechRecognizer.ERROR_NO_MATCH -> "No match"
@@ -363,7 +358,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
                         else -> "Unknown error"
                     }
-                    Toast.makeText(this@XngloIME, "Error: $message", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@XngloIME, "Error: $message", Toast.LENGTH_LONG).show()
                     speechRecognizer?.destroy()
                     speechRecognizer = null
                 }
@@ -388,17 +383,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_RECORD_AUDIO && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            startVoiceInput()
-        } else {
-            Toast.makeText(this, "Microphone permission is required", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun devanagariToXi38(input: String): String {
-        // Pre-processing
+        // Pre-processing (from TypeScript file)
         var processed = input
             .replace(Regex("(^|[\\b\\s])क्ष"), "$1s")
             .replace(Regex("^क्ष"), "s")
