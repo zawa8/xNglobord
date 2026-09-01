@@ -133,6 +133,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?) {
+        // Handle mic before any currentInputConnection check
+        if (primaryCode == MIC_CODE) {
+            startVoiceInput()
+            return
+        }
+
         val ic = currentInputConnection ?: return
         when (primaryCode) {
             Keyboard.KEYCODE_DELETE -> {
@@ -172,9 +178,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
-            MIC_CODE -> {
-                startVoiceInput()
-            }
             in HEX_LETTER_CODES -> {
                 ic.commitText(primaryCode.toChar().toString(), 1)
                 currentWord.setLength(0)
