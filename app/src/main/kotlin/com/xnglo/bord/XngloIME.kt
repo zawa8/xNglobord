@@ -133,7 +133,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?) {
-        // Handle mic before any currentInputConnection check
+        Toast.makeText(this, "onKey: $primaryCode", Toast.LENGTH_SHORT).show()
+
+   // Handle mic before any currentInputConnection check
         if (primaryCode == MIC_CODE) {
             startVoiceInput()
             return
