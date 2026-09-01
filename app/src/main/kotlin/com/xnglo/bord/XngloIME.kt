@@ -330,14 +330,16 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Vosk Voice Input ---
-    // --- Vosk Voice Input ---
     private fun startVoiceInput() {
+        Toast.makeText(this, "Mic pressed", Toast.LENGTH_SHORT).show()
+
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Please grant microphone permission in Settings", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Permission missing", Toast.LENGTH_LONG).show()
             return
         }
         try {
             if (voskModel == null) {
+                Toast.makeText(this, "Loading model...", Toast.LENGTH_SHORT).show()
                 voskModel = Model("model-hi")
             }
             val recognizer = Recognizer(voskModel, 16000f)
@@ -370,11 +372,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     speechService?.stop()
                 }
             })
+            Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "Vosk error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
-	
+
     private fun convertVoskResultToXi38(jsonResult: String): String {
         try {
             val json = org.json.JSONObject(jsonResult)
