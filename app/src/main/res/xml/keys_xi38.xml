@@ -65,7 +65,7 @@
         <Key android:codes="106" android:keyLabel="j" />
         <Key android:codes="107" android:keyLabel="k" />
         <Key android:codes="108" android:keyLabel="l" />
-        <Key android:codes="-3" android:keyLabel="🎤" android:keyEdgeFlags="right" />
+        <Key android:codes="-100" android:keyLabel="🎤" android:keyEdgeFlags="right" />
     </Row>
 
     <Row>
