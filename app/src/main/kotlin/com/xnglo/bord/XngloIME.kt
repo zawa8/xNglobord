@@ -463,7 +463,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val KEYCODE_ENTER = -4
         private const val MODE_SWITCH_CODE = -2
         private const val SHIFT_CODE = -1
-        private const val MIC_CODE = -3
+        private const val MIC_CODE = -100
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
