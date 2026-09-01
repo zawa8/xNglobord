@@ -137,7 +137,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
    // Handle mic before any currentInputConnection check
         if (primaryCode == MIC_CODE) {
-      startVoiceInput()
+Toast.makeText(this, "Mic key pressed", Toast.LENGTH_LONG).show()
+      //startVoiceInput()
             return
         }
 
