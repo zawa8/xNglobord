@@ -20,10 +20,7 @@ import android.view.inputmethod.InputConnection
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import org.vosk.Model
-import org.vosk.Recognizer
-import org.vosk.android.SpeechService
-import java.io.IOException
+import java.util.Locale
 
 class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
@@ -83,11 +80,10 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
-    // Vosk fields
-    private var speechService: SpeechService? = null
-    private var voskModel: Model? = null
+    // Google Speech Recognizer
+    private var speechRecognizer: SpeechRecognizer? = null
 
-    // Devanagari to xi38 mapping (from hsciistr_file.ts)
+    // Devanagari to xi38 mapping
     private val devanagariToXi38Array = arrayOf(
         "", "N", "N", ":", "xe", "x", "a", "_i", "_i", "_u", "_u", "ri", "li",
         "_e", "_e", "_e", "_e", "ao", "_o", "o", "ou",
@@ -135,10 +131,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     override fun onKey(primaryCode: Int, keyCodes: IntArray?) {
         Toast.makeText(this, "onKey: $primaryCode", Toast.LENGTH_SHORT).show()
 
-   // Handle mic before any currentInputConnection check
         if (primaryCode == MIC_CODE) {
-Toast.makeText(this, "Mic key pressed", Toast.LENGTH_LONG).show()
-      //startVoiceInput()
+            startVoiceInput()
             return
         }
 
@@ -335,66 +329,65 @@ Toast.makeText(this, "Mic key pressed", Toast.LENGTH_LONG).show()
         renderCandidates()
     }
 
-    // --- Vosk Voice Input ---
+    // --- Google Speech Voice Input ---
     private fun startVoiceInput() {
         Toast.makeText(this, "Mic pressed", Toast.LENGTH_SHORT).show()
 
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Permission missing", Toast.LENGTH_LONG).show()
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_LONG).show()
             return
         }
-        try {
-            if (voskModel == null) {
-                Toast.makeText(this, "Loading model...", Toast.LENGTH_SHORT).show()
-                voskModel = Model("model-hi")
-            }
-            val recognizer = Recognizer(voskModel, 16000f)
-            speechService = SpeechService(recognizer, 16000f)
-            speechService?.startListening(object : org.vosk.android.RecognitionListener {
-                override fun onPartialResult(hypothesis: String?) {}
-                override fun onResult(hypothesis: String?) {
-                    if (hypothesis != null) {
-                        val xi38Text = convertVoskResultToXi38(hypothesis)
-                        currentInputConnection?.commitText(xi38Text, 1)
-                        currentWord.setLength(0)
-                        renderCandidates()
-                    }
-                }
-                override fun onFinalResult(hypothesis: String?) {
-                    if (hypothesis != null) {
-                        val xi38Text = convertVoskResultToXi38(hypothesis)
-                        currentInputConnection?.commitText(xi38Text, 1)
-                        currentWord.setLength(0)
-                        renderCandidates()
-                    }
-                    speechService?.stop()
-                }
-                override fun onError(exception: Exception?) {
-                    Toast.makeText(this@XngloIME, "Speech error: ${exception?.message}", Toast.LENGTH_LONG).show()
-                    speechService?.stop()
-                }
-                override fun onTimeout() {
-                    Toast.makeText(this@XngloIME, "Speech timeout", Toast.LENGTH_SHORT).show()
-                    speechService?.stop()
-                }
-            })
-            Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Vosk error: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
 
-    private fun convertVoskResultToXi38(jsonResult: String): String {
-        try {
-            val json = org.json.JSONObject(jsonResult)
-            val text = json.optString("text", "")
-            return if (text.any { it.code in 0x0900..0x097F }) {
-                devanagariToXi38(text)
-            } else {
-                text
-            }
-        } catch (e: Exception) {
-            return jsonResult
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Boliyen (Hindi)")
+        }
+
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+            setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {}
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() {}
+
+                override fun onError(error: Int) {
+                    val msg = when (error) {
+                        SpeechRecognizer.ERROR_AUDIO -> "Audio error"
+                        SpeechRecognizer.ERROR_CLIENT -> "Client error"
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission needed"
+                        SpeechRecognizer.ERROR_NETWORK -> "Network error"
+                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
+                        SpeechRecognizer.ERROR_NO_MATCH -> "No match"
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
+                        SpeechRecognizer.ERROR_SERVER -> "Server error"
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
+                        else -> "Error: $error"
+                    }
+                    Toast.makeText(this@XngloIME, msg, Toast.LENGTH_LONG).show()
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                }
+
+                override fun onResults(results: Bundle?) {
+                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    if (!matches.isNullOrEmpty()) {
+                        val devanagariText = matches[0]
+                        Toast.makeText(this@XngloIME, "Recognized: $devanagariText", Toast.LENGTH_LONG).show()
+                        val xi38Text = devanagariToXi38(devanagariText)
+                        currentInputConnection?.commitText(xi38Text, 1)
+                        currentWord.setLength(0)
+                        renderCandidates()
+                    }
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                }
+
+                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+            startListening(intent)
         }
     }
 
@@ -442,10 +435,8 @@ Toast.makeText(this, "Mic key pressed", Toast.LENGTH_LONG).show()
 
     override fun onDestroy() {
         super.onDestroy()
-        speechService?.stop()
-        speechService = null
-        voskModel?.close()
-        voskModel = null
+        speechRecognizer?.destroy()
+        speechRecognizer = null
     }
 
     override fun onText(text: CharSequence?) {
