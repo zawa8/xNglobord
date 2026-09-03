@@ -330,67 +330,73 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Google Speech Voice Input ---
-    private fun startVoiceInput() {
-        Toast.makeText(this, "Mic pressed", Toast.LENGTH_SHORT).show()
 
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_LONG).show()
-            return
-        }
+private fun startVoiceInput() {
+    Toast.makeText(this, "Mic pressed", Toast.LENGTH_SHORT).show()
 
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Boliyen (Hindi)")
-        }
-
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-            setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {}
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {}
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
-
-                override fun onError(error: Int) {
-                    val msg = when (error) {
-                        SpeechRecognizer.ERROR_AUDIO -> "Audio error"
-                        SpeechRecognizer.ERROR_CLIENT -> "Client error"
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission needed"
-                        SpeechRecognizer.ERROR_NETWORK -> "Network error"
-                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
-                        SpeechRecognizer.ERROR_NO_MATCH -> "No match"
-                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
-                        SpeechRecognizer.ERROR_SERVER -> "Server error"
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
-                        else -> "Error: $error"
-                    }
-                    Toast.makeText(this@XngloIME, msg, Toast.LENGTH_LONG).show()
-                    speechRecognizer?.destroy()
-                    speechRecognizer = null
-                }
-
-                override fun onResults(results: Bundle?) {
-                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!matches.isNullOrEmpty()) {
-                        val devanagariText = matches[0]
-                        Toast.makeText(this@XngloIME, "Recognized: $devanagariText", Toast.LENGTH_LONG).show()
-                        val xi38Text = devanagariToXi38(devanagariText)
-                        currentInputConnection?.commitText(xi38Text, 1)
-                        currentWord.setLength(0)
-                        renderCandidates()
-                    }
-                    speechRecognizer?.destroy()
-                    speechRecognizer = null
-                }
-
-                override fun onPartialResults(partialResults: Bundle?) {}
-                override fun onEvent(eventType: Int, params: Bundle?) {}
-            })
-            startListening(intent)
-        }
+    if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+        Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_LONG).show()
+        return
     }
 
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+        putExtra(RecognizerIntent.EXTRA_PROMPT, "Boliyen (Hindi)")
+    }
+
+    speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+        setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                Toast.makeText(this@XngloIME, "Ready for speech", Toast.LENGTH_SHORT).show()
+            }
+            override fun onBeginningOfSpeech() {
+                Toast.makeText(this@XngloIME, "Listening...", Toast.LENGTH_SHORT).show()
+            }
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {
+                Toast.makeText(this@XngloIME, "End of speech", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onError(error: Int) {
+                val msg = when (error) {
+                    SpeechRecognizer.ERROR_AUDIO -> "Audio error"
+                    SpeechRecognizer.ERROR_CLIENT -> "Client error"
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission needed"
+                    SpeechRecognizer.ERROR_NETWORK -> "Network error"
+                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
+                    SpeechRecognizer.ERROR_NO_MATCH -> "No match"
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
+                    SpeechRecognizer.ERROR_SERVER -> "Server error"
+                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
+                    else -> "Error: $error"
+                }
+                Toast.makeText(this@XngloIME, "ERROR: $msg", Toast.LENGTH_LONG).show()
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+            }
+
+            override fun onResults(results: Bundle?) {
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    val devanagariText = matches[0]
+                    Toast.makeText(this@XngloIME, "Recognized: $devanagariText", Toast.LENGTH_LONG).show()
+                    val xi38Text = devanagariToXi38(devanagariText)
+                    currentInputConnection?.commitText(xi38Text, 1)
+                    currentWord.setLength(0)
+                    renderCandidates()
+                }
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+            }
+
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        startListening(intent)
+    }
+}
     private fun devanagariToXi38(input: String): String {
         var processed = input
             .replace(Regex("(^|[\\b\\s])क्ष"), "$1s")
