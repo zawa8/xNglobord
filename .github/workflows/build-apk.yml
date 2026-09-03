@@ -1,8 +1,9 @@
 name: Build APK
 
+
 on:
   push:
-    branches: [wimxl]
+    branches: [ wimxl, mic_gugl_hi ]
   workflow_dispatch: {}
 
 permissions:
