@@ -20,7 +20,7 @@ class XngloIME : InputMethodService(), RecognitionListener {
 
     override fun onCreateInputView(): View {
         // Inflate your keyboard layout (which references keys_xi38.xml)
-        val keyboardView = layoutInflater.inflate(R.layout.keyboard_view_layout, null) as? XngloKeyboardView // Replace with your actual keyboard view class/layout if different
+        val keyboardView = layoutInflater.inflate(R.layout.keyboard_view, null) as? XngloKeyboardView // Replace with your actual keyboard view class/layout if different
         
         // Initialize SpeechRecognizer safely on the UI/service thread
         initializeSpeechRecognizer()
