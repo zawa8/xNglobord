@@ -133,6 +133,15 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?) {
+        Toast.makeText(this, "onKey: $primaryCode", Toast.LENGTH_SHORT).show()
+
+   // Handle mic before any currentInputConnection check
+        if (primaryCode == MIC_CODE) {
+Toast.makeText(this, "Mic key pressed", Toast.LENGTH_LONG).show()
+      //startVoiceInput()
+            return
+        }
+
         val ic = currentInputConnection ?: return
         when (primaryCode) {
             Keyboard.KEYCODE_DELETE -> {
@@ -172,9 +181,6 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
-            MIC_CODE -> {
-                startVoiceInput()
-            }
             in HEX_LETTER_CODES -> {
                 ic.commitText(primaryCode.toChar().toString(), 1)
                 currentWord.setLength(0)
@@ -330,14 +336,16 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     // --- Vosk Voice Input ---
-    // --- Vosk Voice Input ---
     private fun startVoiceInput() {
+        Toast.makeText(this, "Mic pressed", Toast.LENGTH_SHORT).show()
+
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Please grant microphone permission in Settings", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Permission missing", Toast.LENGTH_LONG).show()
             return
         }
         try {
             if (voskModel == null) {
+                Toast.makeText(this, "Loading model...", Toast.LENGTH_SHORT).show()
                 voskModel = Model("model-hi")
             }
             val recognizer = Recognizer(voskModel, 16000f)
@@ -370,11 +378,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                     speechService?.stop()
                 }
             })
+            Toast.makeText(this, "Listening...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "Vosk error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
-	
+
     private fun convertVoskResultToXi38(jsonResult: String): String {
         try {
             val json = org.json.JSONObject(jsonResult)
@@ -455,7 +464,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val KEYCODE_ENTER = -4
         private const val MODE_SWITCH_CODE = -2
         private const val SHIFT_CODE = -1
-        private const val MIC_CODE = -3
+        private const val MIC_CODE = -100
         private const val WORD_BOUNDARY_SPACE = 32
         private const val WORD_BOUNDARY_COMMA = 44
         private const val WORD_BOUNDARY_PERIOD = 46
