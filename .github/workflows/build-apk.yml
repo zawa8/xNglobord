@@ -3,7 +3,8 @@ name: Build Android APK
 on:
   push:
     branches:
-      - zemini
+      - zemini_mic
+  workflow_dispatch:
 
 jobs:
   build:
