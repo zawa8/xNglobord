@@ -7,7 +7,7 @@ import android.graphics.Typeface
 /**
  * Loads and caches Typefaces from assets/fonts/, and reads/writes the
  * user's selected font preference. Default is hindixv38 (xNglohindi)
- * per spec -- there's no "system font" fallback option, the picker
+ * per spec -- there's no "system font" fallback option, picker
  * always has one of the 11 xNglo fonts selected.
  */
 object FontManager {
