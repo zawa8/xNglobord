@@ -1,5 +1,6 @@
 package com.xnglo.bord
 
+import android.content.Intent
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
@@ -73,6 +74,13 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     private var isNumericMode = false
     private var isNumericLocked = false
     private var lastModeSwitchTapTime = 0L
+
+    // Mic key: Hindi voice -> xi38 text (DevanagariToXi38). Tap to
+    // start listening, tap again to stop early; the mic key's
+    // background highlights while isListening (matches the shift/
+    // caps-lock highlight pattern in XngloKeyboardView).
+    private val micVoiceInput by lazy { MicVoiceInput(this) }
+    private var isListening = false
 
     // The word currently being typed, since the last word boundary
     // (space/punctuation/enter/backspace-to-empty). Used to query
@@ -174,12 +182,26 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         isNumericLocked = false
         isShiftActive = false
         isCapsLock = false
+        if (isListening) {
+            micVoiceInput.stop()
+            isListening = false
+        }
         keyboardView.keyboard = letterKeyboard
         keyboardView.setShiftActive(false)
+        keyboardView.setListening(false)
         currentWord.setLength(0)
         selectedTypeface = FontManager.getSelectedTypeface(this)
         keyboardView.setKeyTypeface(selectedTypeface)
         renderCandidates()
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        if (isListening) {
+            micVoiceInput.stop()
+            isListening = false
+            keyboardView.setListening(false)
+        }
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?) {
@@ -226,9 +248,7 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             }
             MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
-            MIC_CODE -> {
-                // Voice input to xi38 text -- pending feature, no-op for now.
-            }
+            MIC_CODE -> handleMicTap()
             in HEX_LETTER_CODES -> {
                 // L Y V W P F (hex digits 10-15, xi38's own letters
                 // instead of the standard A-F) -- not part of xi38
@@ -300,6 +320,58 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     }
 
     /**
+     * Mic key tap: if RECORD_AUDIO isn't granted yet, opens
+     * SettingsActivity to grant it there (IMEs can't show the
+     * permission dialog themselves -- no Activity context for it
+     * inside the keyboard's window). Otherwise toggles listening:
+     * tap to start, tap again to stop early.
+     */
+    private fun handleMicTap() {
+        if (isListening) {
+            micVoiceInput.stop()
+            isListening = false
+            keyboardView.setListening(false)
+            return
+        }
+
+        if (!micVoiceInput.hasPermission()) {
+            val intent = Intent(this, SettingsActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra(SettingsActivity.EXTRA_REQUEST_MIC_PERMISSION, true)
+            }
+            startActivity(intent)
+            return
+        }
+
+        micVoiceInput.start(object : MicVoiceInput.Callback {
+            override fun onXi38Result(xi38Text: String) {
+                commitMicText(xi38Text)
+                isListening = false
+                keyboardView.setListening(false)
+            }
+
+            override fun onListeningStateChanged(listening: Boolean) {
+                isListening = listening
+                keyboardView.setListening(listening)
+            }
+
+            override fun onError(message: String) {
+                isListening = false
+                keyboardView.setListening(false)
+            }
+        })
+    }
+
+    /** Commits recognized+converted xi38 text, tracking the last word of it for dictionary suggestions. */
+    private fun commitMicText(xi38Text: String) {
+        val ic = currentInputConnection ?: return
+        ic.commitText(xi38Text, 1)
+        currentWord.setLength(0)
+        currentWord.append(xi38Text.substringAfterLast(' '))
+        renderCandidates()
+    }
+
+    /**
      * Shift tap-count logic:
      *   1 tap: one-shot shift (isShiftActive on, off again after the
      *          next letter -- see the "else" branch of onKey()).
@@ -367,6 +439,11 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             isShiftActive = false
             isCapsLock = false
             keyboardView.setShiftActive(false)
+        }
+        if (isListening) {
+            micVoiceInput.stop()
+            isListening = false
+            keyboardView.setListening(false)
         }
     }
 

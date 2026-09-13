@@ -63,6 +63,7 @@ class XngloKeyboardView @JvmOverloads constructor(
     private val fillPaintNormal = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111827.toInt() }
     private val fillPaintPressed = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1E293B.toInt() }
     private val fillPaintShiftActive = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1D4ED8.toInt() }
+    private val fillPaintListening = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFDC2626.toInt() }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFF374151.toInt()
         style = Paint.Style.STROKE
@@ -73,9 +74,15 @@ class XngloKeyboardView @JvmOverloads constructor(
     private val keyMargin = dpToPx(2f)
 
     private var shiftActive = false
+    private var listening = false
 
     fun setShiftActive(active: Boolean) {
         shiftActive = active
+        invalidate()
+    }
+
+    fun setListening(active: Boolean) {
+        listening = active
         invalidate()
     }
 
@@ -102,8 +109,10 @@ class XngloKeyboardView @JvmOverloads constructor(
                 (key.y + key.height).toFloat() - keyMargin
             )
             val isShiftKey = key.codes.isNotEmpty() && key.codes[0] == SHIFT_CODE
+            val isMicKey = key.codes.isNotEmpty() && key.codes[0] == MIC_CODE
             val fill = when {
                 isShiftKey && shiftActive -> fillPaintShiftActive
+                isMicKey && listening -> fillPaintListening
                 key.pressed -> fillPaintPressed
                 else -> fillPaintNormal
             }
@@ -159,6 +168,7 @@ class XngloKeyboardView @JvmOverloads constructor(
 
     companion object {
         private const val SHIFT_CODE = -1
+        private const val MIC_CODE = -3
         private const val HINT_LABEL_THRESHOLD = 4 // longer than this (e.g. the spacebar hint) uses hintLabelPaint
         private const val DEFAULT_LABEL_COLOR = 0xFFE2E8F0.toInt()
         private const val COLOR_1_SKY_BLUE = 0xFF56B4E9.toInt()
