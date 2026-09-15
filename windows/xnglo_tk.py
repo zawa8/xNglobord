@@ -49,7 +49,9 @@ from xnglo_core import (  # noqa: E402
 )
 from ttf_name import read_family_name  # noqa: E402
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# When frozen by PyInstaller, bundled data (fonts/, dictionaries/) lives
+# under sys._MEIPASS instead of next to this script.
+HERE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 DICTIONARIES_DIR = os.path.join(HERE, "dictionaries")
 FONTS_DIR = os.path.join(HERE, "fonts")
 CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "xnglobord")
