@@ -1,0 +1,59 @@
+name: Build Ubuntu deb
+
+on:
+  push:
+    branches: [ubuntu_porting]
+    paths: ["linux/**", ".github/workflows/build-deb.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble package tree
+        run: |
+          set -e
+          PKG_VERSION="0.1.${{ github.run_number }}"
+          PKG_ROOT="pkgroot/xnglobord_${PKG_VERSION}_all"
+
+          mkdir -p "$PKG_ROOT"
+          cp -r linux/packaging/DEBIAN "$PKG_ROOT/DEBIAN"
+          cp -r linux/packaging/usr "$PKG_ROOT/usr"
+
+          mkdir -p "$PKG_ROOT/usr/lib/xnglobord"
+          cp linux/xnglo_core.py linux/xnglo_gtk.py "$PKG_ROOT/usr/lib/xnglobord/"
+          cp -r linux/fonts "$PKG_ROOT/usr/lib/xnglobord/fonts"
+          cp -r linux/dictionaries "$PKG_ROOT/usr/lib/xnglobord/dictionaries"
+
+          sed -i "s/VERSION_PLACEHOLDER/${PKG_VERSION}/" "$PKG_ROOT/DEBIAN/control"
+          chmod 755 "$PKG_ROOT/usr/bin/xnglobord"
+          chmod 755 "$PKG_ROOT/DEBIAN"
+
+          echo "PKG_ROOT=$PKG_ROOT" >> "$GITHUB_ENV"
+
+      - name: Build .deb
+        run: dpkg-deb --build --root-owner-group "$PKG_ROOT"
+
+      - name: Rename .deb into out/
+        run: |
+          mkdir -p out
+          cp pkgroot/*.deb "out/xNglobord-${{ github.run_number }}.deb"
+
+      - name: Upload .deb as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xNglobord-ubuntu-deb
+          path: out/*.deb
+
+      - name: Publish as a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: linux-build-${{ github.run_number }}
+          name: "Ubuntu Build ${{ github.run_number }}"
+          files: out/*.deb

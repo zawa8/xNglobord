@@ -1,0 +1,12 @@
+Package: xnglobord
+Version: VERSION_PLACEHOLDER
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.9), python3-gi, gir1.2-gtk-3.0, xdotool, libfontconfig1
+Maintainer: xNglobord project <noreply@example.invalid>
+Description: Floating on-screen xi38 keyboard (Ubuntu port of xNglobord)
+ A floating, always-on-top GTK keyboard for typing the xi38 script,
+ ported from the xNglobord Android IME. Pick a target window and click
+ (or long-press) keys to type into it via xdotool. Includes the pooled
+ xi38 dictionary, candidates strip, and 11-font local font picker.

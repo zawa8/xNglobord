@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=xNglobord
+Comment=Floating on-screen xi38 keyboard
+Exec=xnglobord
+Terminal=false
+Categories=Utility;
