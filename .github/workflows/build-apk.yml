@@ -21,9 +21,12 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # No explicit Android SDK setup step: android-actions/setup-android@v3
+      # tries to install the legacy 'tools' package, which Google has
+      # removed from the SDK repository, so the action now fails outright
+      # ("Failed to find package 'tools'"). ubuntu-latest already ships a
+      # working Android SDK (ANDROID_HOME preset, platforms/build-tools
+      # for compileSdk 34 already present) that Gradle picks up on its own.
       - name: Generate Gradle wrapper
         run: gradle wrapper --gradle-version 8.7
 
