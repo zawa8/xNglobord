@@ -152,6 +152,21 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
+    // ( [ { long-press: shows all 6 bracket symbols via SymbolAltPopup,
+    // same as the comma key above. Shared handler for all 3 codes --
+    // only one key can be physically held at a time (same reasoning
+    // as letterLongPress*), so no per-key tracking is needed here.
+    private val bracketLongPressHandler = Handler(Looper.getMainLooper())
+    private var bracketLongPressTriggered = false
+    private val bracketLongPressRunnable = Runnable {
+        bracketLongPressTriggered = true
+        SymbolAltPopup.show(this, rootView, listOf("(", ")", "[", "]", "{", "}")) { symbol ->
+            currentInputConnection?.commitText(symbol, 1)
+            currentWord.setLength(0)
+            renderCandidates()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         XngloDictionary.loadAll(this)
@@ -246,6 +261,24 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 renderCandidates()
                 maybeAutoReturnFromOneShotNumeric()
             }
+            in BRACKET_PAIR_CODES -> {
+                if (bracketLongPressTriggered) {
+                    // The long-press already showed the ( ) [ ] { } popup --
+                    // don't also insert the pair for this same press.
+                    bracketLongPressTriggered = false
+                } else {
+                    val closeChar = when (primaryCode) {
+                        LEFT_PAREN -> ')'
+                        LEFT_BRACKET -> ']'
+                        else -> '}'
+                    }
+                    ic.commitText(primaryCode.toChar().toString(), 1)
+                    ic.commitText(closeChar.toString(), 0) // 0 -> cursor lands right before this char, i.e. between the pair
+                    currentWord.setLength(0)
+                    renderCandidates()
+                    maybeAutoReturnFromOneShotNumeric()
+                }
+            }
             MODE_SWITCH_CODE -> handleModeSwitchTap()
             SHIFT_CODE -> handleShiftTap()
             MIC_CODE -> handleMicTap()
@@ -302,6 +335,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         } else if (primaryCode == WORD_BOUNDARY_COMMA) {
             commaLongPressTriggered = false
             commaLongPressHandler.postDelayed(commaLongPressRunnable, LONG_PRESS_MS)
+        } else if (primaryCode in BRACKET_PAIR_CODES) {
+            bracketLongPressTriggered = false
+            bracketLongPressHandler.postDelayed(bracketLongPressRunnable, LONG_PRESS_MS)
         } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
             letterLongPressTriggered = false
             letterLongPressCode = primaryCode
@@ -314,6 +350,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             spaceLongPressHandler.removeCallbacks(spaceLongPressRunnable)
         } else if (primaryCode == WORD_BOUNDARY_COMMA) {
             commaLongPressHandler.removeCallbacks(commaLongPressRunnable)
+        } else if (primaryCode in BRACKET_PAIR_CODES) {
+            bracketLongPressHandler.removeCallbacks(bracketLongPressRunnable)
         } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
             letterLongPressHandler.removeCallbacks(letterLongPressRunnable)
         }
@@ -538,5 +576,12 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         // E U I O M X -- plain letters an hscii font remaps to display
         // as ==/!=/>=/<=/&&/|| (see keys_numeric.xml's header comment)
         private val OPERATOR_LETTER_CODES: Set<Int> = setOf(69, 85, 73, 79, 77, 88)
+
+        // ( [ { -- auto-pair on a plain tap; long-press shows all 6
+        // bracket symbols via SymbolAltPopup (see onKey()/onPress()).
+        private const val LEFT_PAREN = 40
+        private const val LEFT_BRACKET = 91
+        private const val LEFT_BRACE = 123
+        private val BRACKET_PAIR_CODES: Set<Int> = setOf(LEFT_PAREN, LEFT_BRACKET, LEFT_BRACE)
     }
 }
