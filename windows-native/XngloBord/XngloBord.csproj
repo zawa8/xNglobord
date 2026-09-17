@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>xNglobord</AssemblyName>
+    <RootNamespace>XngloBord</RootNamespace>
+    <!-- Self-contained, single-file publish -> no .NET runtime install needed
+         on the target machine, and no Python interpreter dependency at all
+         (this replaces the old PyInstaller-based windows/xnglo_tk.py port). -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Bundled as loose files next to the exe (not embedded resources):
+         fonts/ are loaded at runtime via Fonts.GetFontFamilies(fileUri)
+         (see LocalFonts.cs), which needs a real file on disk, not a
+         resource stream. dictionaries/ are plain-text word lists. -->
+    <None Include="fonts\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="dictionaries\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

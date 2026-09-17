@@ -1,9 +1,9 @@
-name: Build Windows EXE
+name: Build Windows EXE (native C#)
 
 on:
   push:
     branches: [windoz_porting]
-    paths: ["windows/**", ".github/workflows/build-exe.yml"]
+    paths: ["windows-native/**", ".github/workflows/build-exe.yml"]
   workflow_dispatch: {}
 
 permissions:
@@ -16,26 +16,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
         with:
-          python-version: "3.11"
+          dotnet-version: "8.0.x"
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
-
-      - name: Build standalone EXE
-        working-directory: windows
-        run: >
-          pyinstaller --onefile --windowed --name xNglobord
-          --add-data "fonts;fonts"
-          --add-data "dictionaries;dictionaries"
-          xnglo_tk.py
+      - name: Publish self-contained single-file EXE
+        working-directory: windows-native/XngloBord
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o out_publish
 
       - name: Rename EXE with build number
         run: |
           mkdir out
-          copy windows\dist\xNglobord.exe "out\xNglobord-${{ github.run_number }}.exe"
+          copy "windows-native\XngloBord\out_publish\xNglobord.exe" "out\xNglobord-${{ github.run_number }}.exe"
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
