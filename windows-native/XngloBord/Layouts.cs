@@ -72,8 +72,8 @@ public static class Layouts
         new()
         {
             new(KeyboardEngine.ModeSwitchCode, "?123", 11), new(44, ",:", 10),
-            new(32, "longpres->font", 45), new(46, ".", 10), new(64, "@", 8),
-            new(KeyboardEngine.KeycodeEnter, "\u23ce", 16),
+            new(32, "longpres->font", 45), new(46, ".", 10), new(64, "@", 14),
+            new(KeyboardEngine.KeycodeEnter, "\u23ce", 10),
         },
     };
 
