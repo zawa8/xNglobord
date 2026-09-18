@@ -22,7 +22,7 @@
         <!-- Diagnostic status line: shows exactly what happened on the
              last font load attempt (path found?, AddFontResourceEx
              result, parsed TTF family name, what WPF actually resolved)
-             -- since this app can't be run under a debugger on a normal
+             - since this app can't be run under a debugger on a normal
              user's machine, this is how we find out what's really going
              wrong instead of guessing blind. -->
         <TextBlock x:Name="FontDiagText" DockPanel.Dock="Bottom" Margin="2" FontSize="10"
