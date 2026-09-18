@@ -71,9 +71,9 @@ public static class Layouts
         // ?123, comma, space, period, @, enter
         new()
         {
-            new(KeyboardEngine.ModeSwitchCode, "?123", 14), new(44, ",:", 12),
-            new(32, "space", 32), new(46, ".", 12), new(64, "@", 10),
-            new(KeyboardEngine.KeycodeEnter, "\u23ce", 20),
+            new(KeyboardEngine.ModeSwitchCode, "?123", 11), new(44, ",:", 10),
+            new(32, "longpres->font", 45), new(46, ".", 10), new(64, "@", 8),
+            new(KeyboardEngine.KeycodeEnter, "\u23ce", 16),
         },
     };
 
