@@ -33,21 +33,24 @@ public static class LocalFonts
 /// <summary>
 /// Reads/writes the selected font id in a small local prefs file (the
 /// desktop equivalent of Android SharedPreferences), and loads each
-/// .ttf's <see cref="FontFamily"/> straight from the file on disk.
+/// .ttf via AddFontResourceEx (GDI, process-private) + its real family
+/// name read straight out of the file (see TtfName.cs).
 ///
-/// This is the one part of the port that's actually *simpler* than
-/// both the Android original and the earlier Python/Tkinter port:
-/// neither AddFontResourceEx nor manual TTF name-table parsing is
-/// needed (compare windows/ttf_name.py in the old Python port) --
-/// WPF's <see cref="Fonts.GetFontFamilies(Uri)"/> loads a specific
-/// font file directly and hands back a ready-to-use FontFamily, with
-/// no OS-level font registration at all.
+/// This replaced an earlier version that used WPF's own
+/// Fonts.GetFontFamilies(fileUri) to load fonts directly with no OS
+/// registration -- simpler in principle, but it didn't reliably pick
+/// up these custom subset fonts in practice (confirmed: font-picker
+/// selection had no visible effect after a real on-device test).
+/// AddFontResourceEx is the same technique already proven to work with
+/// these exact .ttf files, both on Android (Typeface.createFromAsset)
+/// and in the earlier Python/Tkinter Windows port.
 /// </summary>
 public sealed class FontManager
 {
     private readonly string configPath;
     private readonly string fontsDir;
     private readonly Dictionary<string, FontFamily> cache = new();
+    private readonly HashSet<string> registeredFiles = new();
 
     public FontManager(string configDir, string fontsDir)
     {
@@ -73,9 +76,11 @@ public sealed class FontManager
 
     public LocalFontOption GetSelectedOption() => LocalFonts.ById(GetSelectedFontId()) ?? LocalFonts.All[1];
 
-    /// <summary>Loads (and caches) the FontFamily for a given font option,
-    /// straight from its .ttf file. Falls back to the system default
-    /// font if the file is missing or has no embedded family.</summary>
+    /// <summary>Loads (and caches) the FontFamily for a given font option:
+    /// registers the .ttf with GDI via AddFontResourceEx (process-private,
+    /// FR_PRIVATE), reads its real embedded family name, and returns a
+    /// FontFamily built from that name. Falls back to the system default
+    /// font if the file is missing or registration fails.</summary>
     public FontFamily LoadFontFamily(LocalFontOption option)
     {
         if (cache.TryGetValue(option.AssetFileName, out var cached)) return cached;
@@ -84,15 +89,25 @@ public sealed class FontManager
         FontFamily family;
         try
         {
-            var uri = new Uri(path, UriKind.Absolute);
-            var families = Fonts.GetFontFamilies(uri).ToList();
-            family = families.Count > 0 ? families[0] : new FontFamily();
+            if (File.Exists(path))
+            {
+                if (registeredFiles.Add(path))
+                {
+                    NativeMethods.AddFontResourceEx(path, NativeMethods.FR_PRIVATE, IntPtr.Zero);
+                }
+                var realName = TtfName.ReadFamilyName(path, option.DisplayName);
+                family = new FontFamily(realName);
+            }
+            else
+            {
+                family = new FontFamily();
+            }
         }
         catch (Exception)
         {
-            // Best-effort: missing file, corrupt font data, bad URI, etc.
-            // should fall back to the system default rather than crash
-            // the keyboard.
+            // Best-effort: missing file, bad registration, etc. should
+            // fall back to the system default rather than crash the
+            // keyboard.
             family = new FontFamily();
         }
 

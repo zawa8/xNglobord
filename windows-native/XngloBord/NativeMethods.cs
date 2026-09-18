@@ -111,6 +111,15 @@ internal static class NativeMethods
 
     #endregion
 
+    #region Private font loading (AddFontResourceEx)
+
+    public const uint FR_PRIVATE = 0x10;
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    public static extern int AddFontResourceEx(string lpszFilename, uint fl, IntPtr pdv);
+
+    #endregion
+
     /// <summary>Types Unicode text into whichever window currently has
     /// keyboard focus (never our own -- see WS_EX_NOACTIVATE above),
     /// one KEYEVENTF_UNICODE down+up pair per char.</summary>
