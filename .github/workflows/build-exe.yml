@@ -25,20 +25,26 @@ jobs:
         working-directory: windows-native/XngloBord
         run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o out_publish
 
-      - name: Rename EXE with build number
+      - name: Package exe + fonts + dictionaries into a zip
+        shell: pwsh
         run: |
-          mkdir out
-          copy "windows-native\XngloBord\out_publish\xNglobord.exe" "out\xNglobord-${{ github.run_number }}.exe"
+          $pkgName = "xNglobord-${{ github.run_number }}"
+          $pkgDir = "out\$pkgName"
+          New-Item -ItemType Directory -Path $pkgDir -Force | Out-Null
+          Copy-Item "windows-native\XngloBord\out_publish\xNglobord.exe" "$pkgDir\xNglobord.exe"
+          Copy-Item "windows-native\XngloBord\out_publish\fonts" "$pkgDir\fonts" -Recurse
+          Copy-Item "windows-native\XngloBord\out_publish\dictionaries" "$pkgDir\dictionaries" -Recurse
+          Compress-Archive -Path "$pkgDir\*" -DestinationPath "out\$pkgName.zip"
 
-      - name: Upload EXE as workflow artifact
+      - name: Upload zip as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: xNglobord-windows-exe
-          path: out/*.exe
+          path: out/*.zip
 
       - name: Publish as a GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: windows-build-${{ github.run_number }}
           name: "Windows Build ${{ github.run_number }}"
-          files: out/*.exe
+          files: out/*.zip
