@@ -19,6 +19,15 @@
         <!-- Candidates strip -->
         <WrapPanel x:Name="CandidatesPanel" DockPanel.Dock="Top" Orientation="Horizontal" Margin="2" />
 
+        <!-- Diagnostic status line: shows exactly what happened on the
+             last font load attempt (path found?, AddFontResourceEx
+             result, parsed TTF family name, what WPF actually resolved)
+             -- since this app can't be run under a debugger on a normal
+             user's machine, this is how we find out what's really going
+             wrong instead of guessing blind. -->
+        <TextBlock x:Name="FontDiagText" DockPanel.Dock="Bottom" Margin="2" FontSize="10"
+                   Foreground="#FF555555" TextWrapping="Wrap" />
+
         <!-- Key grid, built in code-behind from Layouts.Letters/Numeric -->
         <StackPanel x:Name="KeysPanel" DockPanel.Dock="Top" Margin="2" />
     </DockPanel>

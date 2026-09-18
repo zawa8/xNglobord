@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Windows.Media;
 
 namespace XngloBord;
@@ -76,6 +77,14 @@ public sealed class FontManager
 
     public LocalFontOption GetSelectedOption() => LocalFonts.ById(GetSelectedFontId()) ?? LocalFonts.All[1];
 
+    /// <summary>Human-readable detail on what happened during the most
+    /// recent <see cref="LoadFontFamily"/> call -- file found?,
+    /// AddFontResourceEx return value, parsed TTF family name, what
+    /// FontFamily.Source WPF actually resolved to. Shown in the UI
+    /// (MainWindow's FontDiagText) since this app can't be run under a
+    /// debugger on a normal user's machine.</summary>
+    public string LastDiagnostic { get; private set; } = "";
+
     /// <summary>Loads (and caches) the FontFamily for a given font option:
     /// registers the .ttf with GDI via AddFontResourceEx (process-private,
     /// FR_PRIVATE), reads its real embedded family name, and returns a
@@ -83,34 +92,53 @@ public sealed class FontManager
     /// font if the file is missing or registration fails.</summary>
     public FontFamily LoadFontFamily(LocalFontOption option)
     {
-        if (cache.TryGetValue(option.AssetFileName, out var cached)) return cached;
+        if (cache.TryGetValue(option.AssetFileName, out var cached))
+        {
+            LastDiagnostic = $"{option.AssetFileName}: (cached) -> {cached.Source}";
+            return cached;
+        }
 
         var path = Path.Combine(fontsDir, option.AssetFileName);
         FontFamily family;
+        var diag = new StringBuilder();
+        diag.Append($"{option.AssetFileName}: path={path}");
         try
         {
-            if (File.Exists(path))
+            bool exists = File.Exists(path);
+            diag.Append($" exists={exists}");
+            if (exists)
             {
-                if (registeredFiles.Add(path))
+                bool alreadyRegistered = !registeredFiles.Add(path);
+                if (!alreadyRegistered)
                 {
-                    NativeMethods.AddFontResourceEx(path, NativeMethods.FR_PRIVATE, IntPtr.Zero);
+                    int result = NativeMethods.AddFontResourceEx(path, NativeMethods.FR_PRIVATE, IntPtr.Zero);
+                    diag.Append($" AddFontResourceEx={result}");
+                }
+                else
+                {
+                    diag.Append(" AddFontResourceEx=(already registered)");
                 }
                 var realName = TtfName.ReadFamilyName(path, option.DisplayName);
+                diag.Append($" parsedName='{realName}'");
                 family = new FontFamily(realName);
+                diag.Append($" -> FontFamily.Source='{family.Source}'");
             }
             else
             {
                 family = new FontFamily();
+                diag.Append(" -> using system default");
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Best-effort: missing file, bad registration, etc. should
             // fall back to the system default rather than crash the
             // keyboard.
             family = new FontFamily();
+            diag.Append($" EXCEPTION: {ex.GetType().Name}: {ex.Message}");
         }
 
+        LastDiagnostic = diag.ToString();
         cache[option.AssetFileName] = family;
         return family;
     }

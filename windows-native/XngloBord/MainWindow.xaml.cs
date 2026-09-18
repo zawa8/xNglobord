@@ -222,6 +222,7 @@ public partial class MainWindow : Window
         foreach (var buttons in keyButtons.Values)
             foreach (var btn in buttons)
                 btn.FontFamily = family;
+        FontDiagText.Text = fontManager.LastDiagnostic;
     }
 
     // --- comma / bracket long-press popups (SymbolAltPopup equivalent) ---
