@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -35,16 +36,18 @@ public static class LocalFonts
 /// Reads/writes the selected font id in a small local prefs file (the
 /// desktop equivalent of Android SharedPreferences), and loads each
 /// .ttf via AddFontResourceEx (GDI, process-private) + its real family
-/// name read straight out of the file (see TtfName.cs).
+/// name read via System.Drawing.Text.PrivateFontCollection.
 ///
-/// This replaced an earlier version that used WPF's own
+/// History: an earlier version used WPF's own
 /// Fonts.GetFontFamilies(fileUri) to load fonts directly with no OS
-/// registration -- simpler in principle, but it didn't reliably pick
-/// up these custom subset fonts in practice (confirmed: font-picker
-/// selection had no visible effect after a real on-device test).
-/// AddFontResourceEx is the same technique already proven to work with
-/// these exact .ttf files, both on Android (Typeface.createFromAsset)
-/// and in the earlier Python/Tkinter Windows port.
+/// registration at all -- didn't reliably pick up these custom subset
+/// fonts in practice (confirmed on a real device: font-picker
+/// selection had no visible effect). Switched to AddFontResourceEx
+/// (the technique already proven to work with these exact .ttf files
+/// on Android and the old Python port) for registration, but the
+/// family-name lookup was then a hand-rolled binary TTF 'name' table
+/// parser (TtfName.cs) -- also confirmed not to fix it, replaced here
+/// with PrivateFontCollection, a proven BCL API for exactly this.
 /// </summary>
 public sealed class FontManager
 {
@@ -52,6 +55,7 @@ public sealed class FontManager
     private readonly string fontsDir;
     private readonly Dictionary<string, FontFamily> cache = new();
     private readonly HashSet<string> registeredFiles = new();
+    private readonly PrivateFontCollection privateFonts = new();
 
     public FontManager(string configDir, string fontsDir)
     {
@@ -87,9 +91,13 @@ public sealed class FontManager
 
     /// <summary>Loads (and caches) the FontFamily for a given font option:
     /// registers the .ttf with GDI via AddFontResourceEx (process-private,
-    /// FR_PRIVATE), reads its real embedded family name, and returns a
-    /// FontFamily built from that name. Falls back to the system default
-    /// font if the file is missing or registration fails.</summary>
+    /// FR_PRIVATE, needed so WPF can actually find/render it by name),
+    /// reads its real embedded family name via
+    /// System.Drawing.Text.PrivateFontCollection (a proven BCL API --
+    /// more reliable here than a hand-rolled binary 'name' table parser
+    /// turned out to be with these particular custom subset fonts), and
+    /// returns a FontFamily built from that name. Falls back to the
+    /// system default font if the file is missing or registration fails.</summary>
     public FontFamily LoadFontFamily(LocalFontOption option)
     {
         if (cache.TryGetValue(option.AssetFileName, out var cached))
@@ -109,17 +117,25 @@ public sealed class FontManager
             if (exists)
             {
                 bool alreadyRegistered = !registeredFiles.Add(path);
+                string realName;
                 if (!alreadyRegistered)
                 {
                     int result = NativeMethods.AddFontResourceEx(path, NativeMethods.FR_PRIVATE, IntPtr.Zero);
                     diag.Append($" AddFontResourceEx={result}");
+
+                    privateFonts.AddFontFile(path);
+                    var addedFamily = privateFonts.Families.LastOrDefault();
+                    realName = addedFamily?.Name ?? option.DisplayName;
+                    diag.Append($" gdiPlusName='{addedFamily?.Name ?? "(none)"}'");
                 }
                 else
                 {
                     diag.Append(" AddFontResourceEx=(already registered)");
+                    var match = privateFonts.Families.FirstOrDefault(f =>
+                        string.Equals(f.Name, option.DisplayName, StringComparison.OrdinalIgnoreCase));
+                    realName = match?.Name ?? option.DisplayName;
                 }
-                var realName = TtfName.ReadFamilyName(path, option.DisplayName);
-                diag.Append($" parsedName='{realName}'");
+
                 family = new FontFamily(realName);
                 diag.Append($" -> FontFamily.Source='{family.Source}'");
             }
