@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,7 +7,19 @@ using System.Windows.Media;
 
 namespace XngloBord;
 
-public sealed record LocalFontOption(string FontId, string DisplayName, string AssetFileName);
+public sealed record LocalFontOption(string FontId, string DisplayName, string AssetFileName)
+{
+    /// <summary>The font's real internal family name, as set by the pff
+    /// repo's scripts/xi38py/rename_utf_fonts.py -- always exactly
+    /// FontId + "utf" (verified against that script directly: its
+    /// FONT_RENAMES table maps e.g. 'hindixv38' -> 'hindixv38utf' for
+    /// all 11 fonts, no exceptions). Hardcoded here rather than
+    /// discovered at runtime, since two different runtime-discovery
+    /// approaches (a hand-rolled TTF 'name' table parser, then
+    /// System.Drawing.Text.PrivateFontCollection) both turned out to be
+    /// unreliable with these particular custom subset fonts.</summary>
+    public string RealFamilyName => FontId + "utf";
+}
 
 /// <summary>Same order/entries as the Android app's LocalFonts.kt -- please don't reshuffle.</summary>
 public static class LocalFonts
@@ -35,19 +46,22 @@ public static class LocalFonts
 /// <summary>
 /// Reads/writes the selected font id in a small local prefs file (the
 /// desktop equivalent of Android SharedPreferences), and loads each
-/// .ttf via AddFontResourceEx (GDI, process-private) + its real family
-/// name read via System.Drawing.Text.PrivateFontCollection.
+/// .ttf via AddFontResourceEx (GDI, process-private) + its known real
+/// family name (LocalFontOption.RealFamilyName -- see that property's
+/// own doc comment for why this is hardcoded rather than discovered).
 ///
 /// History: an earlier version used WPF's own
 /// Fonts.GetFontFamilies(fileUri) to load fonts directly with no OS
 /// registration at all -- didn't reliably pick up these custom subset
 /// fonts in practice (confirmed on a real device: font-picker
-/// selection had no visible effect). Switched to AddFontResourceEx
-/// (the technique already proven to work with these exact .ttf files
-/// on Android and the old Python port) for registration, but the
-/// family-name lookup was then a hand-rolled binary TTF 'name' table
-/// parser (TtfName.cs) -- also confirmed not to fix it, replaced here
-/// with PrivateFontCollection, a proven BCL API for exactly this.
+/// selection had no visible effect). Switched to AddFontResourceEx for
+/// registration (confirmed working), but paired it first with a
+/// hand-rolled binary TTF 'name' table parser, then with
+/// System.Drawing.Text.PrivateFontCollection, to discover each font's
+/// real name at runtime -- both also confirmed broken on a real device
+/// (the PrivateFontCollection one silently returned a *different*
+/// font's name after failing to add a new one, a known GDI+ quirk with
+/// some font files). Hardcoding the name is what actually worked.
 /// </summary>
 public sealed class FontManager
 {
@@ -55,7 +69,6 @@ public sealed class FontManager
     private readonly string fontsDir;
     private readonly Dictionary<string, FontFamily> cache = new();
     private readonly HashSet<string> registeredFiles = new();
-    private readonly PrivateFontCollection privateFonts = new();
 
     public FontManager(string configDir, string fontsDir)
     {
@@ -92,12 +105,9 @@ public sealed class FontManager
     /// <summary>Loads (and caches) the FontFamily for a given font option:
     /// registers the .ttf with GDI via AddFontResourceEx (process-private,
     /// FR_PRIVATE, needed so WPF can actually find/render it by name),
-    /// reads its real embedded family name via
-    /// System.Drawing.Text.PrivateFontCollection (a proven BCL API --
-    /// more reliable here than a hand-rolled binary 'name' table parser
-    /// turned out to be with these particular custom subset fonts), and
-    /// returns a FontFamily built from that name. Falls back to the
-    /// system default font if the file is missing or registration fails.</summary>
+    /// then builds a FontFamily from its known real name (see
+    /// LocalFontOption.RealFamilyName). Falls back to the system default
+    /// font if the file is missing or registration fails.</summary>
     public FontFamily LoadFontFamily(LocalFontOption option)
     {
         if (cache.TryGetValue(option.AssetFileName, out var cached))
@@ -116,28 +126,18 @@ public sealed class FontManager
             diag.Append($" exists={exists}");
             if (exists)
             {
-                bool alreadyRegistered = !registeredFiles.Add(path);
-                string realName;
-                if (!alreadyRegistered)
+                if (registeredFiles.Add(path))
                 {
                     int result = NativeMethods.AddFontResourceEx(path, NativeMethods.FR_PRIVATE, IntPtr.Zero);
                     diag.Append($" AddFontResourceEx={result}");
-
-                    privateFonts.AddFontFile(path);
-                    var addedFamily = privateFonts.Families.LastOrDefault();
-                    realName = addedFamily?.Name ?? option.DisplayName;
-                    diag.Append($" gdiPlusName='{addedFamily?.Name ?? "(none)"}'");
                 }
                 else
                 {
                     diag.Append(" AddFontResourceEx=(already registered)");
-                    var match = privateFonts.Families.FirstOrDefault(f =>
-                        string.Equals(f.Name, option.DisplayName, StringComparison.OrdinalIgnoreCase));
-                    realName = match?.Name ?? option.DisplayName;
                 }
 
-                family = new FontFamily(realName);
-                diag.Append($" -> FontFamily.Source='{family.Source}'");
+                family = new FontFamily(option.RealFamilyName);
+                diag.Append($" realFamilyName='{option.RealFamilyName}' -> FontFamily.Source='{family.Source}'");
             }
             else
             {

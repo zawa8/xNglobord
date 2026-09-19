@@ -18,15 +18,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Only for System.Drawing.Text.PrivateFontCollection, used to read
-         a .ttf's real embedded family name (see LocalFonts.cs) - a
-         proven BCL API, more reliable here than a hand-rolled binary
-         'name' table parser (TtfName.cs, now removed) turned out to be
-         with these particular custom subset fonts. -->
-    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Bundled as loose files next to the exe (not embedded resources):
          fonts/ are registered at runtime via AddFontResourceEx (see
          LocalFonts.cs), which needs a real file on disk, not a resource
