@@ -46,35 +46,38 @@ public static class LocalFonts
 /// <summary>
 /// Reads/writes the selected font id in a small local prefs file (the
 /// desktop equivalent of Android SharedPreferences), and loads each
-/// .ttf via AddFontResourceEx (GDI, process-private) + its known real
-/// family name (LocalFontOption.RealFamilyName -- see that property's
-/// own doc comment for why this is hardcoded rather than discovered).
+/// font via a WPF pack URI pointing at the embedded fonts/ resource
+/// (see the .csproj: fonts\** is a &lt;Resource&gt;, baked into the exe),
+/// selecting by the font's known real family name (see
+/// LocalFontOption.RealFamilyName's own doc comment).
 ///
-/// History: an earlier version used WPF's own
-/// Fonts.GetFontFamilies(fileUri) to load fonts directly with no OS
-/// registration at all -- didn't reliably pick up these custom subset
-/// fonts in practice (confirmed on a real device: font-picker
-/// selection had no visible effect). Switched to AddFontResourceEx for
-/// registration (confirmed working), but paired it first with a
-/// hand-rolled binary TTF 'name' table parser, then with
-/// System.Drawing.Text.PrivateFontCollection, to discover each font's
-/// real name at runtime -- both also confirmed broken on a real device
-/// (the PrivateFontCollection one silently returned a *different*
-/// font's name after failing to add a new one, a known GDI+ quirk with
-/// some font files). Hardcoding the name is what actually worked.
+/// History: three earlier approaches were all tried and all confirmed
+/// broken on a real device:
+///   1. WPF's Fonts.GetFontFamilies(fileUri) on a loose .ttf file --
+///      no visible effect.
+///   2. AddFontResourceEx (Win32 GDI) + a hand-rolled TTF 'name' table
+///      parser to find the family name -- no visible effect.
+///   3. AddFontResourceEx + System.Drawing.Text.PrivateFontCollection
+///      to find the family name -- confirmed actively wrong (silently
+///      reused a *different*, earlier-loaded font's name when
+///      PrivateFontCollection failed to add a new family, a known
+///      GDI+ quirk with some font files).
+/// All three shared the same core mechanism: register with GDI, then
+/// ask WPF to find it by name via new FontFamily(nameString). Since
+/// that combination never worked even once the correct name was
+/// confirmed independently (from the pff repo's own build script),
+/// this drops GDI entirely in favor of WPF's own native embedded-font
+/// pack-URI mechanism, a different code path altogether.
 /// </summary>
 public sealed class FontManager
 {
     private readonly string configPath;
-    private readonly string fontsDir;
     private readonly Dictionary<string, FontFamily> cache = new();
-    private readonly HashSet<string> registeredFiles = new();
 
-    public FontManager(string configDir, string fontsDir)
+    public FontManager(string configDir)
     {
         Directory.CreateDirectory(configDir);
         this.configPath = Path.Combine(configDir, "xnglobord_prefs.txt");
-        this.fontsDir = fontsDir;
     }
 
     public string GetSelectedFontId()
@@ -95,19 +98,14 @@ public sealed class FontManager
     public LocalFontOption GetSelectedOption() => LocalFonts.ById(GetSelectedFontId()) ?? LocalFonts.All[1];
 
     /// <summary>Human-readable detail on what happened during the most
-    /// recent <see cref="LoadFontFamily"/> call -- file found?,
-    /// AddFontResourceEx return value, parsed TTF family name, what
-    /// FontFamily.Source WPF actually resolved to. Shown in the UI
+    /// recent <see cref="LoadFontFamily"/> call. Shown in the UI
     /// (MainWindow's FontDiagText) since this app can't be run under a
     /// debugger on a normal user's machine.</summary>
     public string LastDiagnostic { get; private set; } = "";
 
-    /// <summary>Loads (and caches) the FontFamily for a given font option:
-    /// registers the .ttf with GDI via AddFontResourceEx (process-private,
-    /// FR_PRIVATE, needed so WPF can actually find/render it by name),
-    /// then builds a FontFamily from its known real name (see
-    /// LocalFontOption.RealFamilyName). Falls back to the system default
-    /// font if the file is missing or registration fails.</summary>
+    /// <summary>Loads (and caches) the FontFamily for a given font option,
+    /// via a pack URI into the embedded fonts/ resource, selected by its
+    /// known real family name.</summary>
     public FontFamily LoadFontFamily(LocalFontOption option)
     {
         if (cache.TryGetValue(option.AssetFileName, out var cached))
@@ -116,42 +114,21 @@ public sealed class FontManager
             return cached;
         }
 
-        var path = Path.Combine(fontsDir, option.AssetFileName);
         FontFamily family;
         var diag = new StringBuilder();
-        diag.Append($"{option.AssetFileName}: path={path}");
         try
         {
-            bool exists = File.Exists(path);
-            diag.Append($" exists={exists}");
-            if (exists)
-            {
-                if (registeredFiles.Add(path))
-                {
-                    int result = NativeMethods.AddFontResourceEx(path, NativeMethods.FR_PRIVATE, IntPtr.Zero);
-                    diag.Append($" AddFontResourceEx={result}");
-                }
-                else
-                {
-                    diag.Append(" AddFontResourceEx=(already registered)");
-                }
-
-                family = new FontFamily(option.RealFamilyName);
-                diag.Append($" realFamilyName='{option.RealFamilyName}' -> FontFamily.Source='{family.Source}'");
-            }
-            else
-            {
-                family = new FontFamily();
-                diag.Append(" -> using system default");
-            }
+            var baseUri = new Uri("pack://application:,,,/", UriKind.Absolute);
+            var familySelector = $"./fonts/#{option.RealFamilyName}";
+            family = new FontFamily(baseUri, familySelector);
+            diag.Append($"{option.AssetFileName}: familySelector='{familySelector}' -> FontFamily.Source='{family.Source}'");
         }
         catch (Exception ex)
         {
-            // Best-effort: missing file, bad registration, etc. should
-            // fall back to the system default rather than crash the
-            // keyboard.
+            // Best-effort: bad URI, resource not found, etc. should fall
+            // back to the system default rather than crash the keyboard.
             family = new FontFamily();
-            diag.Append($" EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            diag.Append($"{option.AssetFileName}: EXCEPTION: {ex.GetType().Name}: {ex.Message}");
         }
 
         LastDiagnostic = diag.ToString();

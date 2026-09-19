@@ -18,11 +18,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Bundled as loose files next to the exe (not embedded resources):
-         fonts/ are registered at runtime via AddFontResourceEx (see
-         LocalFonts.cs), which needs a real file on disk, not a resource
-         stream. dictionaries/ are plain-text word lists. -->
-    <None Include="fonts\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Embedded as WPF resources (baked into the exe itself), not loose
+         files - loaded via pack://application:,,, URIs in LocalFonts.cs,
+         WPF's own native font-loading path. This replaced an
+         AddFontResourceEx (Win32 GDI)-based approach that went through
+         several iterations (see LocalFontOption.RealFamilyName's doc
+         comment) and never actually worked on a real device, even once
+         the correct family name was confirmed - the GDI-registration
+         to FontFamily(name)-by-string linkage itself seems to be the
+         problem, not the name. Embedded pack-URI resources are WPF's
+         own well-documented mechanism for exactly this, no Win32 calls
+         needed at all. -->
+    <Resource Include="fonts\**" />
+    <!-- dictionaries/ stay as loose files copied next to the exe -
+         they're read with plain File I/O, no WPF resource system
+         involved, so there's no reason to embed them. -->
     <None Include="dictionaries\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

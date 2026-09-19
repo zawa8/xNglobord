@@ -16,7 +16,6 @@ namespace XngloBord;
 public partial class MainWindow : Window
 {
     private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
-    private static readonly string FontsDir = Path.Combine(BaseDir, "fonts");
     private static readonly string DictionariesDir = Path.Combine(BaseDir, "dictionaries");
     private static readonly string ConfigDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "xnglobord");
@@ -32,7 +31,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         dictionary.LoadAll(DictionariesDir);
-        fontManager = new FontManager(ConfigDir, FontsDir);
+        fontManager = new FontManager(ConfigDir);
 
         engine = new KeyboardEngine(dictionary)
         {
