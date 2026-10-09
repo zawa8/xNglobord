@@ -11,17 +11,17 @@ data class LocalFontOption(val id: String, val displayName: String, val assetFil
 object LocalFonts {
     // please do not change order (matches LocalFontPicker.tsx / xnglofont's LocalFonts.kt, minus binaryfont)
     val ALL: List<LocalFontOption> = listOf(
-        LocalFontOption("xe38", "xNgloiNgliS", "xe38.ttf"),
-        LocalFontOption("xh38", "xNglovinqi", "xh38.ttf"),
-        LocalFontOption("xb38", "xNglobNgali", "xb38.ttf"),
-        LocalFontOption("xj38", "xNglojelugu", "xj38.ttf"),
-        LocalFontOption("xk38", "xNgloknRa", "xk38.ttf"),
-        LocalFontOption("xp38", "xNglopnzabi", "xp38.ttf"),
-        LocalFontOption("xm38", "xNglomlyalxm", "xm38.ttf"),
-        LocalFontOption("xo38", "xNglooriya", "xo38.ttf"),
-        LocalFontOption("xg38", "xNgloguzraji", "xg38.ttf"),
-        LocalFontOption("xt38", "xNglotmil", "xt38.ttf"),
-        LocalFontOption("xs38", "xNglosinvla", "xs38.ttf"),
+        LocalFontOption("xe38", "xNgloiNgliS", "xe38asc.ttf"),
+        LocalFontOption("xh38", "xNglovinqi", "xh38asc.ttf"),
+        LocalFontOption("xb38", "xNglobNgali", "xb38asc.ttf"),
+        LocalFontOption("xj38", "xNglojelugu", "xj38asc.ttf"),
+        LocalFontOption("xk38", "xNgloknRa", "xk38asc.ttf"),
+        LocalFontOption("xp38", "xNglopnzabi", "xp38asc.ttf"),
+        LocalFontOption("xm38", "xNglomlyalxm", "xm38asc.ttf"),
+        LocalFontOption("xo38", "xNglooriya", "xo38asc.ttf"),
+        LocalFontOption("xg38", "xNgloguzraji", "xg38asc.ttf"),
+        LocalFontOption("xt38", "xNglotmil", "xt38asc.ttf"),
+        LocalFontOption("xs38", "xNglosinvla", "xs38asc.ttf"),
     )
 
     const val DEFAULT_FONT_ID = "xh38" // xNglohindi
