@@ -38,3 +38,8 @@ replay_pid*
 .cxx
 app/build/
 app/release/
+
+# APK outputs
+*.apk
+/out/
+/xNglobord-debug-*.apk
