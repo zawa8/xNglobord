@@ -43,3 +43,5 @@ app/release/
 *.apk
 /out/
 /xNglobord-debug-*.apk
+.bak/
+*.bak2
