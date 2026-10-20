@@ -39,46 +39,29 @@
     android:verticalGap="2px"
     android:keyHeight="@dimen/key_height">
 
-    <!-- Digit row + direct-access capitals row, added at the top so
-         these don't require switching to keys_numeric.xml (digits) or
-         long-press/shift (capitals) just for quick access. Same
-         generic-commit path as every other plain key: onKey()'s
-         `else` branch -> commitOrdinaryChar(), no Kotlin changes
-         needed - primaryCode is just each key's own literal ASCII
-         value (letters and digits alike already go through that path,
-         see HEX_LETTER_CODES/OPERATOR_LETTER_CODES above it in
-         XngloIME.kt for the same pattern with L Y V W P F / E U I O M X). -->
-    <Row>
-        <Key android:codes="48" android:keyLabel="0" android:keyEdgeFlags="left" />
-        <Key android:codes="49" android:keyLabel="1" />
-        <Key android:codes="50" android:keyLabel="2" />
-        <Key android:codes="51" android:keyLabel="3" />
-        <Key android:codes="52" android:keyLabel="4" />
-        <Key android:codes="53" android:keyLabel="5" />
-        <Key android:codes="54" android:keyLabel="6" />
-        <Key android:codes="55" android:keyLabel="7" />
-        <Key android:codes="56" android:keyLabel="8" />
-        <Key android:codes="57" android:keyLabel="9" android:keyEdgeFlags="right" />
-    </Row>
-
-    <Row>
-        <Key android:codes="81" android:keyLabel="Q" android:keyEdgeFlags="left" />
-        <Key android:codes="82" android:keyLabel="R" />
-        <Key android:codes="84" android:keyLabel="T" />
-        <Key android:codes="65" android:keyLabel="A" />
-        <Key android:codes="78" android:keyLabel="N" />
-        <Key android:codes="68" android:keyLabel="D" />
-        <Key android:codes="71" android:keyLabel="G" />
-        <Key android:codes="72" android:keyLabel="H" />
-        <Key android:codes="74" android:keyLabel="J" />
-        <Key android:codes="88" android:keyLabel="X" android:keyEdgeFlags="right" />
-    </Row>
 
     <!-- Punctuation/bracket row. ( [ { auto-type as pairs on a plain
          tap (e.g. "(" types "()" with the cursor left in between) and
          long-press pops up all 6 bracket symbols to pick one alone -
          see BRACKET_PAIR_CODES / bracketLongPressRunnable in
          XngloIME.kt, same SymbolAltPopup mechanism as the comma key. -->
+    <!-- Extra xi38 letter sounds (K G C Z T D B S N R) not on the
+         QWERTY rows below. Lowercase labels for consistency with
+         q/w/e/...; long-press gives the capital (same Kotlin
+         mechanism as every other letter). -->
+    <Row>
+        <Key android:codes="107" android:keyLabel="k" android:keyEdgeFlags="left" />
+        <Key android:codes="103" android:keyLabel="g" />
+        <Key android:codes="99"  android:keyLabel="c" />
+        <Key android:codes="122" android:keyLabel="z" />
+        <Key android:codes="116" android:keyLabel="t" />
+        <Key android:codes="100" android:keyLabel="d" />
+        <Key android:codes="98"  android:keyLabel="b" />
+        <Key android:codes="115" android:keyLabel="s" />
+        <Key android:codes="110" android:keyLabel="n" />
+        <Key android:codes="114" android:keyLabel="r" android:keyEdgeFlags="right" />
+    </Row>
+
     <Row>
         <Key android:codes="123" android:keyLabel="{" android:keyEdgeFlags="left" />
         <Key android:codes="91" android:keyLabel="[" />

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Real xi38 layout, replacing keys_placeholder.xml.
+
+  Key insight: the 26 lowercase xi38 base graphemes (x a i u e o n h c g
+  k p f b m y r l w s v j q t d z) are literally the ordinary Latin
+  a-z letters: so the physical layout is just standard QWERTY, no
+  relabeling needed. That covers 26 of the 38 sounds directly.
+
+  The remaining 12 come from two places:
+    - N and R: long-press on n / r gives the capital form, same as
+      every other key's long-press-caps behavior. This is handled
+      entirely in Kotlin (XngloIME's onPress/onRelease + a Handler
+      timer, same pattern as the spacebar's long-press font picker):
+      NOT via android:popupCharacters. That attribute triggers the
+      framework's own built-in mini-keyboard popup, which is a
+      separate internal KeyboardView instance our XngloKeyboardView
+      customizations don't reach, so it rendered as a plain white
+      unthemed rectangle. Handling long-press ourselves avoids the
+      framework popup entirely.
+    - K G C Z T D J Q B S: same as every other key's long-press-caps
+      behavior (see above). h itself is a plain letter key.
+
+  Long-press on every a-z key (not just n/r) inserts its capital form,
+  same Kotlin-side mechanism (LONG_PRESS_MS in XngloIME.kt). A shift
+  key (codes=-1) is also available for the same result via two taps
+  (shift, then the letter) instead of one long-press: one-shot,
+  reverts to lowercase after the next letter, or locks on with a
+  double-tap (isCapsLock in XngloIME.kt). See onKey()'s SHIFT_CODE
+  handling.
+
+  Row2 ends with a mic key (codes=-3, 🎤): voice input to xi38 text,
+  a pending feature (currently a no-op, see MIC_CODE in XngloIME.kt).
+  Bottom row now also has @ (per kiz_pez_le-aut.md).
+-->
+<Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
+    android:keyWidth="10%p"
+    android:horizontalGap="0px"
+    android:verticalGap="2px"
+    android:keyHeight="@dimen/key_height">
+
+    <!-- Digit row + direct-access capitals row, added at the top so
+         these don't require switching to keys_numeric.xml (digits) or
+         long-press/shift (capitals) just for quick access. Same
+         generic-commit path as every other plain key: onKey()'s
+         `else` branch -> commitOrdinaryChar(), no Kotlin changes
+         needed - primaryCode is just each key's own literal ASCII
+         value (letters and digits alike already go through that path,
+         see HEX_LETTER_CODES/OPERATOR_LETTER_CODES above it in
+         XngloIME.kt for the same pattern with L Y V W P F / E U I O M X). -->
+    <Row>
+        <Key android:codes="48" android:keyLabel="0" android:keyEdgeFlags="left" />
+        <Key android:codes="49" android:keyLabel="1" />
+        <Key android:codes="50" android:keyLabel="2" />
+        <Key android:codes="51" android:keyLabel="3" />
+        <Key android:codes="52" android:keyLabel="4" />
+        <Key android:codes="53" android:keyLabel="5" />
+        <Key android:codes="54" android:keyLabel="6" />
+        <Key android:codes="55" android:keyLabel="7" />
+        <Key android:codes="56" android:keyLabel="8" />
+        <Key android:codes="57" android:keyLabel="9" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row>
+        <Key android:codes="81" android:keyLabel="Q" android:keyEdgeFlags="left" />
+        <Key android:codes="82" android:keyLabel="R" />
+        <Key android:codes="84" android:keyLabel="T" />
+        <Key android:codes="65" android:keyLabel="A" />
+        <Key android:codes="78" android:keyLabel="N" />
+        <Key android:codes="68" android:keyLabel="D" />
+        <Key android:codes="71" android:keyLabel="G" />
+        <Key android:codes="72" android:keyLabel="H" />
+        <Key android:codes="74" android:keyLabel="J" />
+        <Key android:codes="88" android:keyLabel="X" android:keyEdgeFlags="right" />
+    </Row>
+
+    <!-- Punctuation/bracket row. ( [ { auto-type as pairs on a plain
+         tap (e.g. "(" types "()" with the cursor left in between) and
+         long-press pops up all 6 bracket symbols to pick one alone -
+         see BRACKET_PAIR_CODES / bracketLongPressRunnable in
+         XngloIME.kt, same SymbolAltPopup mechanism as the comma key. -->
+    <Row>
+        <Key android:codes="123" android:keyLabel="{" android:keyEdgeFlags="left" />
+        <Key android:codes="91" android:keyLabel="[" />
+        <Key android:codes="40" android:keyLabel="(" />
+        <Key android:codes="60" android:keyLabel="&lt;" />
+        <Key android:codes="62" android:keyLabel="&gt;" />
+        <Key android:codes="45" android:keyLabel="-" />
+        <Key android:codes="58" android:keyLabel=":" />
+        <Key android:codes="34" android:keyLabel="&quot;" />
+        <Key android:codes="47" android:keyLabel="/" />
+        <Key android:codes="63" android:keyLabel="?" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row>
+        <Key android:codes="113" android:keyLabel="q" android:keyEdgeFlags="left" />
+        <Key android:codes="119" android:keyLabel="w" />
+        <Key android:codes="101" android:keyLabel="e" />
+        <Key android:codes="114" android:keyLabel="r" />
+        <Key android:codes="116" android:keyLabel="t" />
+        <Key android:codes="121" android:keyLabel="y" />
+        <Key android:codes="117" android:keyLabel="u" />
+        <Key android:codes="105" android:keyLabel="i" />
+        <Key android:codes="111" android:keyLabel="o" />
+        <Key android:codes="112" android:keyLabel="p" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row>
+        <Key android:codes="97" android:keyLabel="a" android:keyEdgeFlags="left" />
+        <Key android:codes="115" android:keyLabel="s" />
+        <Key android:codes="100" android:keyLabel="d" />
+        <Key android:codes="102" android:keyLabel="f" />
+        <Key android:codes="103" android:keyLabel="g" />
+        <Key android:codes="104" android:keyLabel="h" />
+        <Key android:codes="106" android:keyLabel="j" />
+        <Key android:codes="107" android:keyLabel="k" />
+        <Key android:codes="108" android:keyLabel="l" />
+        <Key android:codes="-3" android:keyLabel="🎤" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row>
+        <Key android:codes="-1" android:keyLabel="⇧" android:keyWidth="12%p" android:keyEdgeFlags="left" />
+        <Key android:codes="122" android:keyLabel="z" android:keyWidth="11%p" />
+        <Key android:codes="120" android:keyLabel="x" android:keyWidth="11%p" />
+        <Key android:codes="99" android:keyLabel="c" android:keyWidth="11%p" />
+        <Key android:codes="118" android:keyLabel="v" android:keyWidth="11%p" />
+        <Key android:codes="98" android:keyLabel="b" android:keyWidth="11%p" />
+        <Key android:codes="110" android:keyLabel="n" android:keyWidth="11%p" />
+        <Key android:codes="109" android:keyLabel="m" android:keyWidth="11%p" />
+        <Key android:codes="-5" android:keyLabel="⌫" android:keyWidth="11%p" android:isRepeatable="true" android:keyEdgeFlags="right" />
+    </Row>
+
+    <Row android:rowEdgeFlags="bottom">
+        <Key android:codes="-2" android:keyLabel="\?123" android:keyWidth="12%p" android:keyEdgeFlags="left" />
+        <Key android:codes="44" android:keyLabel=",:" android:keyWidth="11%p" />
+        <Key android:codes="32" android:keyLabel="longpres-font" android:keyWidth="43%p" />
+        <Key android:codes="46" android:keyLabel="." android:keyWidth="11%p" />
+        <Key android:codes="64" android:keyLabel="\@" android:keyWidth="11%p" />
+        <Key android:codes="-4" android:keyLabel="⏎" android:keyWidth="12%p" android:keyEdgeFlags="right" />
+    </Row>
+
+</Keyboard>

@@ -122,6 +122,25 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
     // enough; letterLongPressCode tracks *which* key's timer is
     // pending/fired so onKey() can tell whether this specific release
     // was already handled by the long-press.
+    // Digit long-press: hold a letter on the top QWERTY row to commit
+    // its digit instead of the letter. Maps q→1 … o→9, p→0. Same
+    // shared-Handler pattern as letterLongPress*: only one key can be
+    // physically held at a time.
+    private val digitLongPressHandler = Handler(Looper.getMainLooper())
+    private var digitLongPressTriggered = false
+    private var digitLongPressCode = -1
+    private val digitLongPressRunnable = Runnable {
+        digitLongPressTriggered = true
+        val digit = DIGIT_FOR_LETTER[digitLongPressCode]
+        val ic = currentInputConnection
+        if (digit != null && ic != null) {
+            ic.commitText(digit.toString(), 1)
+            currentWord.setLength(0)
+            renderCandidates()
+            maybeAutoReturnFromOneShotNumeric()
+        }
+    }
+
     private val letterLongPressHandler = Handler(Looper.getMainLooper())
     private var letterLongPressTriggered = false
     private var letterLongPressCode = -1
@@ -303,7 +322,9 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
                 maybeAutoReturnFromOneShotNumeric()
             }
             else -> {
-                if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
+                if (primaryCode in DIGIT_FOR_LETTER.keys && digitLongPressTriggered && primaryCode == digitLongPressCode) {
+                    digitLongPressTriggered = false
+                } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z && letterLongPressTriggered && primaryCode == letterLongPressCode) {
                     // The long-press already committed the capital --
                     // don't also commit the lowercase for this release.
                     letterLongPressTriggered = false
@@ -338,6 +359,10 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         } else if (primaryCode in BRACKET_PAIR_CODES) {
             bracketLongPressTriggered = false
             bracketLongPressHandler.postDelayed(bracketLongPressRunnable, LONG_PRESS_MS)
+        } else if (primaryCode in DIGIT_FOR_LETTER.keys) {
+            digitLongPressTriggered = false
+            digitLongPressCode = primaryCode
+            digitLongPressHandler.postDelayed(digitLongPressRunnable, LONG_PRESS_MS)
         } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
             letterLongPressTriggered = false
             letterLongPressCode = primaryCode
@@ -352,6 +377,8 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
             commaLongPressHandler.removeCallbacks(commaLongPressRunnable)
         } else if (primaryCode in BRACKET_PAIR_CODES) {
             bracketLongPressHandler.removeCallbacks(bracketLongPressRunnable)
+        } else if (primaryCode in DIGIT_FOR_LETTER.keys) {
+            digitLongPressHandler.removeCallbacks(digitLongPressRunnable)
         } else if (primaryCode in LOWERCASE_A..LOWERCASE_Z) {
             letterLongPressHandler.removeCallbacks(letterLongPressRunnable)
         }
@@ -567,6 +594,23 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         private const val LONG_PRESS_MS = 500L
         private const val CAPS_LOCK_DOUBLE_TAP_MS = 350L
         private const val LOWERCASE_A = 97
+
+        // Hold a top-row letter → its digit (q→1 … o→9, p→0).
+        // Handled in Kotlin (digitLongPressRunnable) rather than
+        // android:popupCharacters, same reasoning as the letter
+        // long-press caps (see class doc comment).
+        private val DIGIT_FOR_LETTER: Map<Int, Char> = mapOf(
+            'q'.code to '1',
+            'w'.code to '2',
+            'e'.code to '3',
+            'r'.code to '4',
+            't'.code to '5',
+            'y'.code to '6',
+            'u'.code to '7',
+            'i'.code to '8',
+            'o'.code to '9',
+            'p'.code to '0',
+        )
         private const val LOWERCASE_Z = 122
         private const val CASE_OFFSET = 32 // 'a' (97) - 'A' (65)
 
