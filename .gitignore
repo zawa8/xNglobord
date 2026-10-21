@@ -45,3 +45,4 @@ app/release/
 /xNglobord-debug-*.apk
 .bak/
 *.bak2
+*.kt.bak
