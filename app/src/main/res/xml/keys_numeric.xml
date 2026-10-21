@@ -85,7 +85,7 @@
         <Key android:codes="123" android:keyLabel="{" />
         <Key android:codes="41" android:keyLabel=")" />
         <Key android:codes="93" android:keyLabel="]" />
-        <Key android:codes="125" android:keyLabel="}" android:keyEdgeFlags="right" />
+        <Key android:codes="-5" android:keyLabel="⌫" android:keyWidth="11%p" android:isRepeatable="true" android:keyEdgeFlags="right" />
     </Row>
 
     <Row android:rowEdgeFlags="bottom">

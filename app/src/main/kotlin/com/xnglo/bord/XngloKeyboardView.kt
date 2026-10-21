@@ -60,6 +60,15 @@ class XngloKeyboardView @JvmOverloads constructor(
         textSize = spToPx(11f)
     }
 
+    // Small digit hint drawn in the corner of each QWERTY row-1 letter
+    // (q→1 … p→0), mirroring the long-press digit commit in
+    // XngloIME.digitLongPressRunnable.
+    private val digitHintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF94A3B8.toInt()
+        textAlign = Paint.Align.RIGHT
+        textSize = spToPx(11f)
+    }
+
     private val fillPaintNormal = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111827.toInt() }
     private val fillPaintPressed = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1E293B.toInt() }
     private val fillPaintShiftActive = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1D4ED8.toInt() }
@@ -132,6 +141,20 @@ class XngloKeyboardView @JvmOverloads constructor(
                 val cx = rect.centerX()
                 val cy = rect.centerY() - (paint.descent() + paint.ascent()) / 2f
                 canvas.drawText(displayText, cx, cy, paint)
+
+                // bottom-right digit hint on q w e r t y u i o p
+                if (labelText.length == 1) {
+                    val digitHint = QWERTY_ROW1_DIGITS[labelText[0]]
+                    if (digitHint != null) {
+                        digitHintPaint.typeface = labelPaint.typeface
+                        canvas.drawText(
+                            digitHint.toString(),
+                            rect.right - dpToPx(5f),
+                            rect.bottom - dpToPx(3f),
+                            digitHintPaint
+                        )
+                    }
+                }
             }
         }
     }
@@ -176,6 +199,14 @@ class XngloKeyboardView @JvmOverloads constructor(
         private const val COLOR_3_BLUISH_GREEN = 0xFF009E73.toInt()
         private const val COLOR_4_YELLOW = 0xFFF0E442.toInt()
         private const val COLOR_5_REDDISH_PURPLE = 0xFFCC79A7.toInt()
+
+        // Long-press digits shown as a small hint on the QWERTY row-1
+        // letters (q→1 … p→0). The commit itself is handled in
+        // XngloIME.digitLongPressRunnable; this is visual only.
+        private val QWERTY_ROW1_DIGITS: Map<Char, Char> = mapOf(
+            'q' to '1', 'w' to '2', 'e' to '3', 'r' to '4', 't' to '5',
+            'y' to '6', 'u' to '7', 'i' to '8', 'o' to '9', 'p' to '0',
+        )
         private const val COLOR_PINK = 0xFFFF69B4.toInt()
     }
 }
