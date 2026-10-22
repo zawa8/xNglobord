@@ -51,15 +51,15 @@
          mechanism as every other letter). -->
     <Row>
         <Key android:codes="75" android:keyLabel="K" android:keyEdgeFlags="left" />
-        <Key android:codes="103" android:keyLabel="G" />
-        <Key android:codes="99"  android:keyLabel="C" />
-        <Key android:codes="122" android:keyLabel="Z" />
-        <Key android:codes="116" android:keyLabel="T" />
-        <Key android:codes="100" android:keyLabel="D" />
-        <Key android:codes="98"  android:keyLabel="B" />
-        <Key android:codes="115" android:keyLabel="S" />
-        <Key android:codes="110" android:keyLabel="N" />
-        <Key android:codes="114" android:keyLabel="R" android:keyEdgeFlags="right" />
+        <Key android:codes="71" android:keyLabel="G" />
+        <Key android:codes="67"  android:keyLabel="C" />
+        <Key android:codes="92" android:keyLabel="Z" />
+        <Key android:codes="84" android:keyLabel="T" />
+        <Key android:codes="68" android:keyLabel="D" />
+        <Key android:codes="66"  android:keyLabel="B" />
+        <Key android:codes="83" android:keyLabel="S" />
+        <Key android:codes="78" android:keyLabel="N" />
+        <Key android:codes="82" android:keyLabel="R" android:keyEdgeFlags="right" />
     </Row>
     <Row>
         <Key android:codes="113" android:keyLabel="q" android:keyEdgeFlags="left" />
