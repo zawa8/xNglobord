@@ -53,7 +53,7 @@
         <Key android:codes="75" android:keyLabel="K" android:keyEdgeFlags="left" />
         <Key android:codes="71" android:keyLabel="G" />
         <Key android:codes="67"  android:keyLabel="C" />
-        <Key android:codes="92" android:keyLabel="Z" />
+        <Key android:codes="90" android:keyLabel="Z" />
         <Key android:codes="84" android:keyLabel="T" />
         <Key android:codes="68" android:keyLabel="D" />
         <Key android:codes="66"  android:keyLabel="B" />
