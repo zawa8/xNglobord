@@ -1,5 +1,6 @@
 package com.xnglo.bord
 
+import android.content.ClipboardManager
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
@@ -186,9 +187,23 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         }
     }
 
+    // Clipboard history: every system copy lands in ClipboardHistory;
+    // the toolbar clipboard button shows it via ClipboardPopup.
+    private var clipboardManager: ClipboardManager? = null
+    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
+        ClipboardHistory.captureCurrent(this)
+    }
+
     override fun onCreate() {
         super.onCreate()
         XngloDictionary.loadAll(this)
+        clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager?.addPrimaryClipChangedListener(clipListener)
+    }
+
+    override fun onDestroy() {
+        clipboardManager?.removePrimaryClipChangedListener(clipListener)
+        super.onDestroy()
     }
 
     override fun onCreateInputView(): View {
@@ -207,6 +222,24 @@ class XngloIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
         // our own background drawing in XngloKeyboardView.onDraw().
         keyboardView.isPreviewEnabled = false
         rootView = root
+
+        // Toolbar buttons (top of the keyboard, left of the candidates).
+        root.findViewById<View>(R.id.btn_settings).setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        }
+        root.findViewById<View>(R.id.btn_clipboard).setOnClickListener {
+            // Pick up whatever was copied most recently, even if the
+            // change listener missed it (e.g. copied before the IME started).
+            ClipboardHistory.captureCurrent(this)
+            ClipboardPopup.show(this, rootView) { text ->
+                currentInputConnection?.commitText(text, 1)
+                currentWord.setLength(0)
+                renderCandidates()
+            }
+        }
         return root
     }
 
